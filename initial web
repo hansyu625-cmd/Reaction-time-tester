@@ -1,0 +1,1478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sigma Score</title>
+<meta name="description" content="Four quick tests of reaction and memory combined into one Sigma Score, with accounts and daily, weekly and all-time leaderboards.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..600&display=swap" rel="stylesheet">
+<style>
+/* Layout: pages are colour fields (mint = ready, pink = wait, green = go, ink for the live board) on one
+   12-column grid with one pair of margins. Scores are also given in σ, standard deviations from typical. */
+:root {
+  color-scheme: light;
+  --bg: #f8f8f8;
+  --surface: #eeeeee;
+  --tile: #dedede;
+  --ink: #0a0a0a;
+  --ink-2: #1c1c1c;
+  --muted: #4a4a4a;
+  --accent: #1f6b3a;
+  --accent-deep: #17552d;
+  --accent-ink: #ffffff;
+  --mint: #c3edce;
+  --mint-deep: #9fd9b0;
+  --pink: #f8c7c9;
+  --paper: #ffffff;
+  --bad: #b3261e;
+
+  --font: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --step-small: 0.9375rem;
+  --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+  --step-lead: clamp(1.25rem, 1.1rem + 0.7vw, 1.625rem);
+  --step-head: clamp(2rem, 1.3rem + 3.2vw, 4rem);
+  --step-display: clamp(3rem, 7.4vw, 7.5rem);
+
+  --m: clamp(16px, 2.8vw, 40px);
+  --gap: clamp(12px, 1.7vw, 24px);
+  --ease: cubic-bezier(.2,.7,.1,1);
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font); font-size: var(--step-body); line-height: 1.5;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+body.locked { overflow: hidden; }
+h1, h2, h3, p { margin: 0; }
+h1, h2 { font-weight: 600; letter-spacing: -0.04em; line-height: 0.92; text-wrap: balance; }
+h3 { font-weight: 600; letter-spacing: -0.025em; line-height: 1.1; }
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+::selection { background: var(--accent); color: var(--accent-ink); }
+.num { font-variant-numeric: tabular-nums; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.wrap {
+  padding-left: max(var(--m), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--m), env(safe-area-inset-right, 0px));
+}
+.grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  font: 500 var(--step-body)/1 var(--font); letter-spacing: -0.01em;
+  background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px;
+  padding: 18px 28px; text-decoration: none; cursor: pointer;
+  transition: transform .18s var(--ease), background-color .18s var(--ease);
+}
+.btn:hover { background: var(--accent-deep); }
+.btn:active { transform: translateY(2px) scale(.98); }
+.btn[disabled] { opacity: .5; cursor: default; transform: none; }
+.btn.light { background: var(--mint); color: var(--ink); }
+.btn.light:hover { background: var(--paper); }
+.btn.quiet { background: var(--surface); color: var(--ink); }
+.btn.quiet:hover { background: var(--tile); }
+.btn.dark { background: var(--ink); color: var(--paper); }
+.btn.dark:hover { background: var(--ink-2); }
+.btn.small { padding: 12px 20px; font-size: var(--step-small); }
+.linkish { font: inherit; background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-weight: 500; }
+
+/* ───── Nav ───── */
+.site-head { background: var(--bg); }
+.nav { display: flex; justify-content: space-between; align-items: center; gap: 16px 24px; padding-block: 20px; font-size: var(--step-small); flex-wrap: wrap; }
+.wordmark { font-weight: 600; font-size: var(--step-lead); letter-spacing: -0.035em; text-decoration: none; display: inline-flex; align-items: center; gap: 10px; }
+.wordmark i { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--mint); display: inline-grid; place-items: center; font-style: normal; font-size: 22px; line-height: 1; padding-bottom: 4px; }
+.nav-links { list-style: none; margin: 0; padding: 4px; display: flex; gap: 2px; background: var(--surface); border-radius: 999px; }
+.nav-links a { text-decoration: none; padding: 9px 16px; display: block; font-weight: 500; border-radius: 999px; transition: background-color .15s var(--ease); }
+.nav-links a:hover { background: var(--tile); }
+.nav-links a[aria-current="page"] { background: var(--ink); color: var(--paper); }
+.auth-area { display: flex; align-items: center; gap: 6px; }
+.auth-area a { text-decoration: none; font-weight: 500; }
+.auth-area .signin-link { padding: 11px 16px; border-radius: 999px; transition: background-color .15s var(--ease); }
+.auth-area .signin-link:hover, .auth-area .signin-link[aria-current="page"] { background: var(--surface); }
+.me-chip { display: inline-flex; align-items: center; gap: 10px; background: var(--ink); color: var(--paper); padding: 10px 18px 10px 12px; border-radius: 999px; transition: background-color .18s var(--ease); }
+.me-chip:hover { background: var(--accent); }
+.me-chip .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--mint); flex: none; }
+
+/* ───── Pages ───── */
+.page { min-height: 70svh; }
+.page-pad { padding-block: clamp(56px, 7vw, 110px) clamp(88px, 10vw, 150px); }
+.page-title { font-size: var(--step-display); max-width: 14ch; }
+.page-lede { margin-top: 28px; font-size: var(--step-lead); max-width: 42ch; line-height: 1.35; }
+
+/* home: hero */
+.hero { background: var(--bg); }
+.hero .grid { padding-block: clamp(40px, 5vw, 80px) clamp(64px, 8vw, 120px); row-gap: 40px; align-items: end; }
+.hero-copy { grid-column: 1 / 8; }
+.hero h1 { font-size: var(--step-display); max-width: 11ch; }
+.hero h1 b { font-weight: 600; color: var(--accent); }
+.hero .lede { margin-top: 28px; max-width: 36ch; font-size: var(--step-lead); line-height: 1.35; }
+.hero-actions { margin-top: 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.card { grid-column: 8 / 13; background: var(--paper); padding: 28px 30px 30px; display: grid; gap: 18px; border-radius: 28px; }
+.card-top { display: flex; justify-content: space-between; gap: 16px; font-size: var(--step-small); }
+.card-score { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.card-score b { font-size: clamp(5rem, 9vw, 8.5rem); font-weight: 600; letter-spacing: -0.05em; line-height: .82; }
+.card-score span { font-size: var(--step-body); line-height: 1.25; }
+.card-score em { font-style: normal; font-weight: 600; color: var(--accent); }
+.bars { display: grid; gap: 10px; }
+.barrow { display: grid; grid-template-columns: 9.5em 1fr 2.6em; align-items: center; gap: 12px; font-size: var(--step-small); }
+.barrow .track { height: 14px; background: var(--surface); position: relative; overflow: hidden; border-radius: 999px; }
+.barrow .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 999px; transition: width .6s var(--ease); }
+.barrow .mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--ink); opacity: .35; }
+.barrow b { text-align: right; font-weight: 600; }
+.card-foot { font-size: var(--step-small); }
+
+/* home: tests band */
+.four { background: var(--mint); }
+.four .wrap { padding-block: clamp(72px, 8vw, 128px); display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); column-gap: var(--gap); row-gap: 40px; }
+.four h2 { grid-column: 1 / 8; font-size: var(--step-head); }
+.four .four-lede { grid-column: 8 / 13; align-self: end; max-width: 34ch; }
+.four-grid { grid-column: 1 / 13; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+.four-grid a { text-decoration: none; display: grid; background: var(--paper); border-radius: 24px; overflow: hidden; color: var(--ink); transition: transform .25s var(--ease); }
+.four-grid a:hover { transform: translateY(-4px); }
+.four-grid .pv { grid-column: auto; height: 230px; border-radius: 0; }
+.pv.digits b { white-space: nowrap; }
+.four-grid .pv.digits b { font-size: clamp(1.5rem, 2.6vw, 2.6rem); }
+.four-grid .lab { padding: 18px 22px 22px; display: grid; gap: 4px; }
+.four-grid .lab b { font-size: var(--step-lead); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+.four-grid .lab span { font-size: var(--step-small); }
+
+/* home: today's top three */
+.today { background: var(--ink); color: var(--paper); }
+.today .wrap { padding-block: clamp(72px, 8vw, 128px); display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); column-gap: var(--gap); row-gap: 32px; }
+.today h2 { grid-column: 1 / 8; font-size: var(--step-head); }
+.today .cap { grid-column: 8 / 13; align-self: end; max-width: 36ch; }
+.podium { grid-column: 1 / 13; list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)) auto; gap: 8px; align-items: stretch; }
+.podium li { padding: 24px 26px; display: grid; gap: 28px; align-content: space-between; color: var(--ink); border-radius: 24px; }
+.podium li:nth-child(1) { background: var(--mint); }
+.podium li:nth-child(2) { background: var(--pink); }
+.podium li:nth-child(3) { background: var(--paper); }
+.podium .place { display: block; margin-top: 6px; font-size: var(--step-small); font-weight: 500; letter-spacing: 0; }
+.podium .pts { font-size: clamp(3.5rem, 6vw, 5.5rem); font-weight: 600; letter-spacing: -0.05em; line-height: .82; }
+.podium .name { font-size: var(--step-lead); font-weight: 600; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.podium li.more { background: transparent; padding: 0; display: flex; align-items: end; }
+.podium li.open { background: var(--ink-2); color: var(--paper); }
+.podium li.open .pts { color: var(--mint); }
+.podium li.open .name { font-size: var(--step-body); font-weight: 500; letter-spacing: 0; }
+
+/* tests page */
+.tests { background: var(--ink); color: var(--paper); }
+.tests-head { display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); column-gap: var(--gap); row-gap: 28px; align-items: end; }
+.tests-head h1 { grid-column: 1 / 8; }
+.tests-head .side { grid-column: 8 / 13; display: grid; gap: 20px; justify-items: start; }
+.test-list { list-style: none; margin: 56px 0 0; padding: 0; display: grid; gap: 8px; }
+.test-row {
+  display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); column-gap: var(--gap); row-gap: 14px;
+  padding: clamp(20px, 2.4vw, 36px); color: var(--ink); border-radius: 28px; align-items: start;
+}
+.test-row:nth-child(4n+1) { background: var(--pink); }
+.test-row:nth-child(4n+2) { background: var(--mint); }
+.test-row:nth-child(4n+3) { background: var(--paper); }
+.test-row:nth-child(4n+4) { background: var(--pink); }
+.test-row .info { grid-column: 1 / 7; display: grid; gap: 14px; align-content: start; height: 100%; }
+.test-row h2 { font-size: var(--step-head); }
+.test-row p { font-size: var(--step-body); max-width: 36ch; }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: auto; padding-top: 18px; }
+.facts div { display: grid; gap: 2px; font-size: var(--step-small); }
+.facts b { font-size: var(--step-lead); font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+.test-row .go { margin-top: 8px; }
+.pv { grid-column: 7 / 13; height: 260px; background: var(--paper); position: relative; overflow: hidden; display: grid; place-items: center; border-radius: 20px; }
+.test-row:nth-child(4n+3) .pv:not(.green) { background: var(--bg); }
+.pv.green { background: var(--accent); color: var(--accent-ink); place-items: start; padding: 24px 28px; align-content: space-between; }
+.pv.green b { font-size: clamp(3rem, 5vw, 4.5rem); font-weight: 600; letter-spacing: -0.045em; line-height: .9; }
+.pv.green span { font-size: var(--step-small); }
+.pv .g { display: grid; gap: 6px; height: 200px; aspect-ratio: 1; }
+.pv .g i { background: var(--tile); border-radius: 6px; }
+.pv .g i.on { background: var(--accent); }
+.pv.digits { place-items: stretch; padding: 28px; align-content: center; gap: 22px; }
+.pv.digits b { font-size: clamp(2.5rem, 4.4vw, 4rem); font-weight: 600; letter-spacing: .02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.pv.digits .bar { height: 10px; background: var(--surface); position: relative; overflow: hidden; border-radius: 999px; }
+.pv.digits .bar i { position: absolute; inset: 0; background: var(--accent); transform-origin: left; }
+
+/* leaderboard */
+.board { background: var(--mint); }
+.board-head { display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); column-gap: var(--gap); row-gap: 24px; align-items: end; }
+.board-head h1 { grid-column: 1 / 8; }
+.board-head p { grid-column: 8 / 13; max-width: 36ch; }
+.controls { margin-top: 40px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; }
+.seg-ctl { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px; background: rgba(10,10,10,.07); border-radius: 999px; }
+.seg-ctl button {
+  border: 0; border-radius: 999px; cursor: pointer; padding: 10px 18px; font-size: var(--step-small); font-weight: 500;
+  background: transparent; color: var(--ink); transition: background-color .15s var(--ease);
+}
+.seg-ctl button:hover:not([aria-pressed="true"]) { background: rgba(10,10,10,.08); }
+.seg-ctl button[aria-pressed="true"] { background: var(--ink); color: var(--mint); }
+.seg-ctl.big button { font-size: var(--step-body); padding: 12px 22px; }
+.board-panel { margin-top: 24px; background: var(--paper); border-radius: 28px; padding: clamp(18px, 2.6vw, 40px); display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); column-gap: var(--gap); row-gap: 28px; }
+.board-table-wrap { grid-column: 1 / 9; overflow-x: auto; min-width: 0; }
+.board-side { grid-column: 9 / 13; display: grid; gap: 28px; align-content: start; }
+table.lb { width: 100%; border-collapse: collapse; font-size: var(--step-body); }
+.lb th { text-align: left; font-weight: 500; font-size: var(--step-small); color: var(--muted); padding: 0 12px 12px; }
+.lb td { padding: 13px 12px; vertical-align: middle; }
+.lb tbody tr td:first-child { border-radius: 14px 0 0 14px; }
+.lb tbody tr td:last-child { border-radius: 0 14px 14px 0; }
+.lb tr.me td { background: var(--mint); }
+.lb .rank { width: 3.5em; font-weight: 600; font-variant-numeric: tabular-nums; }
+.lb .who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.lb .who i { width: 14px; height: 14px; border-radius: 50%; flex: none; background: var(--tile); }
+.lb .who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 22ch; }
+.lb .you { font-size: var(--step-small); color: var(--accent); font-weight: 600; font-style: normal; }
+.lb .val, .lb th.val { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lb .raw, .lb th.raw { text-align: right; color: var(--muted); font-size: var(--step-small); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lb th.val { font-weight: 500; }
+.lb-empty { padding: 8px 0 12px; display: grid; gap: 20px; justify-items: start; }
+.lb-empty p { font-size: var(--step-lead); line-height: 1.3; max-width: 26ch; }
+.side-block h2 { font-size: var(--step-lead); letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 8px; }
+.my-rank { font-size: clamp(3.5rem, 6vw, 5.5rem); font-weight: 600; letter-spacing: -0.05em; line-height: .9; }
+.my-rank small { font-size: .3em; letter-spacing: 0; font-weight: 500; margin-left: .2em; }
+.my-rank.none { font-size: var(--step-lead); letter-spacing: -0.02em; line-height: 1.2; }
+
+/* scoring */
+.scoring { background: var(--pink); }
+.scoring .page-pad { display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); column-gap: var(--gap); row-gap: 40px; }
+.scoring h1 { grid-column: 1 / 7; }
+.scoring .explain { grid-column: 7 / 13; display: grid; gap: 18px; align-content: end; }
+.scoring .explain p { max-width: 42ch; }
+.scale-wrap { grid-column: 1 / 13; overflow-x: auto; background: var(--paper); padding: clamp(16px, 2.4vw, 36px); border-radius: 28px; }
+table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body); min-width: 560px; }
+.scale th { text-align: left; font-weight: 500; font-size: var(--step-small); color: var(--muted); padding: 0 14px 14px; }
+.scale td { padding: 14px; font-variant-numeric: tabular-nums; }
+.scale td:first-child { font-weight: 600; }
+.scale td.mid { background: var(--mint); font-weight: 600; }
+.scale tbody tr:first-child td.mid { border-radius: 12px 12px 0 0; }
+.scale tbody tr:last-child td.mid { border-radius: 0 0 12px 12px; }
+
+/* help */
+.faq-head { background: var(--accent); color: var(--accent-ink); }
+.faq-head .wrap { padding-block: clamp(56px, 7vw, 110px) 56px; }
+.qa { background: var(--paper); }
+.qa:nth-of-type(odd) { background: var(--surface); }
+.qa .grid { padding-block: 48px; row-gap: 16px; }
+.qa h2 { grid-column: 1 / 6; font-size: var(--step-lead); letter-spacing: -0.025em; line-height: 1.1; }
+.qa .ans { grid-column: 7 / 13; display: grid; gap: 14px; max-width: 60ch; }
+
+/* sign in / sign up */
+.field-mint { background: var(--mint); }
+.field-pink { background: var(--pink); }
+.auth-page { display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); column-gap: var(--gap); row-gap: 40px; align-items: start; }
+.auth-page .copy { grid-column: 1 / 6; display: grid; gap: 24px; }
+.auth-page .copy p { font-size: var(--step-lead); line-height: 1.35; max-width: 30ch; }
+.auth-form { grid-column: 7 / 13; background: var(--paper); padding: clamp(24px, 3.6vw, 52px); display: grid; gap: 20px; border-radius: 28px; }
+.field { display: grid; gap: 8px; }
+.field label { font-weight: 500; }
+.field input {
+  font: 500 var(--step-lead)/1.2 var(--font); padding: 14px 18px; border: 0; border-radius: 16px;
+  background: var(--surface); color: var(--ink); width: 100%;
+}
+.field input:focus-visible { outline: 3px solid var(--accent); outline-offset: 0; }
+.field .hint { font-size: var(--step-small); color: var(--muted); }
+.form-msg { font-size: var(--step-body); min-height: 1.5em; }
+.form-msg.err { color: var(--bad); font-weight: 500; }
+.form-msg.ok { color: var(--accent); font-weight: 500; }
+.show-pw { display: flex; align-items: center; gap: 10px; font-size: var(--step-small); cursor: pointer; }
+.show-pw input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+/* profile */
+.profile { background: var(--bg); }
+.profile .page-pad { display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); column-gap: var(--gap); row-gap: 40px; }
+.p-head { grid-column: 1 / 13; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 24px; }
+.p-head h1 { overflow-wrap: anywhere; }
+.stat-row { grid-column: 1 / 13; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+.stat-row div { padding: 24px; display: grid; gap: 6px; font-size: var(--step-small); align-content: space-between; min-height: 170px; border-radius: 24px; }
+.stat-row div:nth-child(1) { background: var(--accent); color: var(--accent-ink); }
+.stat-row div:nth-child(2) { background: var(--mint); }
+.stat-row div:nth-child(3) { background: var(--pink); }
+.stat-row div:nth-child(4) { background: var(--paper); }
+.stat-row b { font-size: clamp(3rem, 5.5vw, 5rem); font-weight: 600; letter-spacing: -0.05em; line-height: .9; }
+.stat-row b.none { font-size: var(--step-lead); letter-spacing: -0.02em; line-height: 1.2; }
+.p-curve { grid-column: 1 / 13; background: var(--paper); border-radius: 28px; padding: clamp(18px, 2.6vw, 40px); display: grid; gap: 16px; }
+.p-curve h2, .p-recent h2, .p-out h2, .p-pw h2 { font-size: var(--step-lead); letter-spacing: -0.02em; line-height: 1.1; }
+.p-recent { grid-column: 1 / 7; background: var(--paper); padding: clamp(20px, 3vw, 40px); display: grid; gap: 16px; align-content: start; border-radius: 28px; }
+.p-pw.auth-form { grid-column: 7 / 13; }
+.p-out { grid-column: 1 / 13; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px 32px; padding: clamp(20px, 3vw, 36px); background: var(--surface); border-radius: 28px; }
+.p-out p { max-width: 50ch; }
+.recent { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: var(--step-small); }
+.recent li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; background: var(--bg); border-radius: 12px; font-variant-numeric: tabular-nums; }
+
+/* ───── Footer ───── */
+.foot { background: var(--accent); color: var(--paper); }
+.foot .wrap { padding-block: clamp(48px, 6vw, 88px) 28px; display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); column-gap: var(--gap); row-gap: 40px; align-items: end; }
+.foot-big { grid-column: 1 / 9; font-size: clamp(3rem, 8vw, 8rem); letter-spacing: -0.055em; line-height: .88; }
+.foot-big button { all: unset; cursor: pointer; display: inline-block; transition: transform .3s var(--ease); }
+.foot-big button:hover { transform: translateX(10px); }
+.foot-big button:focus-visible { outline: 3px solid var(--paper); outline-offset: 6px; }
+.foot-note { grid-column: 9 / 13; font-size: var(--step-small); max-width: 32ch; }
+.foot-meta { grid-column: 1 / 13; display: flex; justify-content: space-between; gap: 12px 24px; font-size: var(--step-small); flex-wrap: wrap; }
+.foot-meta nav { display: flex; gap: 20px; flex-wrap: wrap; }
+
+/* ───── Arena (tests run here) ───── */
+.arena {
+  position: fixed; inset: 0; z-index: 50; background: var(--bg);
+  display: grid; grid-template-rows: auto 1fr;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.arena-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; font-size: var(--step-small); }
+.arena-bar .steps { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; padding: 4px; background: var(--surface); border-radius: 999px; }
+.arena-bar .steps span { padding: 8px 14px; font-weight: 500; border-radius: 999px; }
+.arena-bar .steps span.done { background: var(--mint); }
+.arena-bar .steps span.now { background: var(--ink); color: var(--paper); }
+.arena-body { overflow: auto; display: grid; place-items: center; padding-block: 8px 32px; }
+.play { width: min(960px, 100%); display: grid; gap: 24px; }
+.play-head { display: grid; gap: 12px; }
+.play-head h2 { font-size: var(--step-head); }
+.play-head p { font-size: var(--step-lead); line-height: 1.35; max-width: 44ch; }
+.play-row { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+.hud { display: flex; justify-content: space-between; gap: 16px; font-size: var(--step-body); font-weight: 500; }
+
+.panel {
+  width: 100%; min-height: min(520px, 62svh); border-radius: 28px;
+  display: grid; grid-template-rows: auto 1fr auto;
+  background: var(--paper); color: var(--ink);
+  padding: 26px 30px 28px;
+  cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  transition: background-color .06s linear, color .06s linear;
+}
+.panel-top, .panel-foot { display: flex; justify-content: space-between; gap: 16px; font-size: var(--step-small); flex-wrap: wrap; }
+.panel-foot kbd { font: inherit; background: var(--surface); padding: 1px 8px; border-radius: 6px; }
+.panel-main { display: grid; align-content: center; gap: 12px; padding-block: 24px; }
+.panel-big { font-size: clamp(3.5rem, 9vw, 7rem); font-weight: 600; letter-spacing: -0.045em; line-height: .9; }
+.panel-big small { font-size: .3em; font-weight: 500; letter-spacing: 0; margin-left: .2em; }
+.panel-sub { font-size: var(--step-lead); line-height: 1.3; max-width: 32ch; }
+.panel[data-state="wait"], .panel[data-state="early"] { background: var(--pink); }
+.panel[data-state="go"] { background: var(--accent); color: var(--accent-ink); }
+.panel[data-state="go"] kbd { background: rgba(255,255,255,.18); }
+
+.tiles { display: grid; gap: 10px; width: min(460px, 100%); aspect-ratio: 1; margin-inline: auto; touch-action: manipulation; }
+.tiles button {
+  border: 0; border-radius: 10px; background: var(--tile); cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent;
+  transition: background-color .12s linear, transform .12s var(--ease);
+}
+.tiles button:active { transform: scale(.95); }
+.tiles button.lit, .tiles button.ok { background: var(--accent); }
+.tiles button.bad { background: var(--ink); }
+.tiles.locked button { cursor: default; }
+.tiles-wrap { background: var(--paper); padding: clamp(16px, 3vw, 40px); display: grid; gap: 20px; border-radius: 28px; }
+
+.num-wrap { background: var(--paper); padding: clamp(24px, 4vw, 56px); display: grid; gap: 28px; min-height: min(440px, 56svh); align-content: center; border-radius: 28px; user-select: none; -webkit-user-select: none; }
+.num-canvas { display: block; color: var(--ink); max-width: 100%; }
+.timebar { height: 10px; background: var(--surface); position: relative; overflow: hidden; border-radius: 999px; }
+.timebar i { position: absolute; inset: 0; background: var(--accent); transform-origin: left; }
+.num-form { display: grid; gap: 14px; max-width: 520px; user-select: text; -webkit-user-select: text; }
+.num-form label { font-weight: 500; }
+.num-form input {
+  font: 600 clamp(2rem, 5vw, 3.25rem)/1.1 var(--font); letter-spacing: 0.02em; font-variant-numeric: tabular-nums;
+  padding: 14px 18px; border: 0; border-radius: 16px; background: var(--surface); color: var(--ink); width: 100%;
+}
+.num-form input:focus-visible { outline: 3px solid var(--accent); outline-offset: 0; }
+.num-note { font-size: var(--step-small); min-height: 1.4em; color: var(--bad); font-weight: 500; }
+.compare { display: grid; gap: 6px; font-size: var(--step-lead); }
+.compare b { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.compare .miss { color: var(--bad); text-decoration: underline; text-decoration-thickness: 3px; }
+
+.result { background: var(--paper); padding: clamp(24px, 4vw, 56px); display: grid; gap: 22px; border-radius: 28px; }
+.result .big { font-size: clamp(5rem, 13vw, 10rem); font-weight: 600; letter-spacing: -0.05em; line-height: .82; }
+.result .big small { font-size: .2em; letter-spacing: 0; font-weight: 500; margin-left: .2em; }
+.result .what { font-size: var(--step-lead); line-height: 1.3; max-width: 40ch; }
+.save-note { font-size: var(--step-body); max-width: 52ch; }
+.save-note.ok { color: var(--accent); font-weight: 500; }
+
+/* ───── Phone composition ───── */
+@media (max-width: 900px) {
+  .nav { padding-block: 16px; }
+  .nav-links { order: 3; width: 100%; justify-content: space-between; }
+  .nav-links a { white-space: nowrap; padding: 9px 12px; }
+  .hero-copy, .card { grid-column: 1 / -1; }
+  .hero h1 { font-size: 12vw; }
+  .hero .lede { margin-top: 20px; font-size: 18px; }
+  .card { padding: 22px 20px; border-radius: 24px; }
+  .barrow { grid-template-columns: 7.6em 1fr 2.2em; gap: 8px; }
+  .page-title, .board-head h1, .scoring h1, .tests-head h1 { font-size: 12vw; }
+  .four h2, .four .four-lede, .today h2, .today .cap { grid-column: 1 / -1; }
+  .four-grid { grid-template-columns: 1fr 1fr; }
+  .four-grid .pv { height: 150px; }
+  .four-grid .pv .g { height: 120px; }
+  .four-grid .pv.digits b { font-size: 1.5rem; }
+  .four-grid .pv.green b { font-size: 2.2rem; }
+  .four-grid .pv.green { padding: 16px; }
+  .four-grid .lab { padding: 14px 16px 18px; }
+  .podium { grid-template-columns: 1fr; }
+  .tests-head h1, .tests-head .side { grid-column: 1 / -1; }
+  .test-row .info, .pv { grid-column: 1 / -1; }
+  .test-row .info { height: auto; }
+  .test-row h2 { font-size: 34px; }
+  .pv { height: 200px; }
+  .pv .g { height: 160px; }
+  .facts { margin-top: 4px; }
+  .board-head h1, .board-head p { grid-column: 1 / -1; }
+  .board-table-wrap, .board-side { grid-column: 1 / -1; }
+  .lb td, .lb th { padding-inline: 8px; }
+  .lb .raw { display: none; }
+  .scoring h1, .scoring .explain { grid-column: 1 / -1; }
+  .qa .grid { padding-block: 32px; }
+  .qa h2, .qa .ans { grid-column: 1 / -1; }
+  .auth-page .copy, .auth-form { grid-column: 1 / -1; }
+  .stat-row { grid-template-columns: 1fr 1fr; }
+  .stat-row div { min-height: 130px; padding: 18px; }
+  .p-recent, .p-pw.auth-form { grid-column: 1 / -1; }
+  .foot-big, .foot-note { grid-column: 1 / -1; }
+  .foot-big { font-size: 15vw; }
+  .foot-meta { flex-direction: column; gap: 6px; }
+  .arena-bar .steps span { padding: 6px 10px; }
+  .arena-bar .steps .lbl { display: none; }
+}
+@media (max-width: 420px) { .nav-links a { padding: 9px 9px; } }
+
+/* ───── Motion ───── */
+@keyframes pop { 0% { transform: scale(.94); } 60% { transform: scale(1.02); } 100% { transform: scale(1); } }
+.pop { animation: pop .35s var(--ease); }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+.arena-body > .play { animation: rise .45s var(--ease) both; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+@keyframes shrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes flash { 0%, 100% { transform: none; } 50% { transform: scale(.94); } }
+.pv .g i.on { animation: blink 2.4s ease-in-out infinite; }
+.pv .g i.on:nth-child(2n) { animation-delay: .6s; }
+.pv .g i.on:nth-child(3n) { animation-delay: 1.2s; }
+.pv.digits .bar i { animation: shrink 4s linear infinite; }
+.pv.green b { animation: flash 1.6s var(--ease) infinite; transform-origin: left; }
+@media (prefers-reduced-motion: reduce) {
+  .pop, .arena-body > .play,
+  .pv .g i.on, .pv.digits .bar i, .pv.green b { animation: none; }
+  .pv.digits .bar i { transform: scaleX(.6); }
+  *, *::before, *::after { transition-duration: .01ms !important; }
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+<header class="site-head">
+  <div class="wrap">
+    <nav class="nav" aria-label="Main">
+      <a class="wordmark" href="#home"><i aria-hidden="true">σ</i>Sigma Score</a>
+      <ul class="nav-links">
+        <li><a href="#tests" data-nav="tests">Tests</a></li>
+        <li><a href="#leaderboard" data-nav="leaderboard">Leaderboard</a></li>
+        <li><a href="#scoring" data-nav="scoring">Scoring</a></li>
+        <li><a href="#help" data-nav="help">Help</a></li>
+      </ul>
+      <div class="auth-area" id="authArea"></div>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <!-- ═══════════ HOME ═══════════ -->
+  <div class="page" data-page="home">
+    <section class="hero" aria-labelledby="home-h">
+      <div class="wrap">
+        <div class="grid">
+          <div class="hero-copy">
+            <h1 id="home-h" data-rise>How many sigmas are you?</h1>
+            <p class="lede" data-rise>Four quick tests of reaction and memory, about four minutes in all. They add up to one Sigma Score out of 100. Fifty is typical.</p>
+            <div class="hero-actions" data-rise>
+              <button class="btn" type="button" id="startFull">Start the full run</button>
+              <a class="btn quiet" href="#signup" id="heroAcct">Create an account</a>
+            </div>
+          </div>
+          <div class="card" data-ui data-rise aria-live="polite">
+            <div class="card-top"><span id="cardWho">Example card</span><span>Best ever</span></div>
+            <div class="card-score"><b class="num" id="cardScore">63</b><span>Sigma Score<br><em id="cardSigma">+0.3σ</em> from typical</span></div>
+            <div class="bars" id="cardBars"></div>
+            <p class="card-foot" id="cardFoot">Finish a full run to see your own card. The line marks 50, a typical result.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="four" aria-labelledby="four-h">
+      <div class="wrap">
+        <h2 id="four-h" data-rise>Four tests, four minutes</h2>
+        <p class="four-lede" data-rise>Reaction measures speed. The three memory tests get one step harder each level until you slip.</p>
+        <ul class="four-grid" id="fourGrid"></ul>
+      </div>
+    </section>
+
+    <section class="today on-ink" aria-labelledby="today-h">
+      <div class="wrap">
+        <h2 id="today-h" data-rise>Today's top three</h2>
+        <p class="cap" id="todayCap" data-rise>The best Sigma Scores from full runs since midnight UTC.</p>
+        <ol class="podium" id="podium"></ol>
+      </div>
+    </section>
+  </div>
+
+  <!-- ═══════════ TESTS ═══════════ -->
+  <section class="page tests" data-page="tests" aria-labelledby="tests-h" hidden>
+    <div class="wrap page-pad">
+      <div class="tests-head">
+        <h1 class="page-title" id="tests-h" data-rise>Four tests, one score</h1>
+        <div class="side" data-rise>
+          <p>The full run plays all four in a row and gives your Sigma Score. Play any test on its own to practise, or to chase that test's board.</p>
+          <button class="btn light" type="button" id="startFull2">Start the full run</button>
+        </div>
+      </div>
+      <ul class="test-list" id="testList"></ul>
+    </div>
+  </section>
+
+  <!-- ═══════════ LEADERBOARD ═══════════ -->
+  <section class="page board on-mint" data-page="leaderboard" aria-labelledby="board-h" hidden>
+    <div class="wrap page-pad">
+      <div class="board-head">
+        <h1 class="page-title" id="board-h" data-rise>Leaderboard</h1>
+        <p data-rise>Each player's best result counts. Today starts at midnight UTC and this week on Monday at midnight UTC.</p>
+      </div>
+      <div class="controls">
+        <div class="seg-ctl big" role="group" aria-label="Time period" id="periodCtl" data-rise>
+          <button type="button" data-p="day" aria-pressed="true">Today</button>
+          <button type="button" data-p="week" aria-pressed="false">This week</button>
+          <button type="button" data-p="all" aria-pressed="false">All time</button>
+        </div>
+        <div class="seg-ctl" role="group" aria-label="Ranking" id="metricCtl" data-rise></div>
+      </div>
+      <div class="board-panel" data-ui data-rise>
+        <div class="board-table-wrap">
+          <table class="lb" aria-label="Leaderboard" id="lbTable">
+            <thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col" class="val" id="valHead">Sigma Score</th><th scope="col" class="raw">Result</th></tr></thead>
+            <tbody id="lbBody"></tbody>
+          </table>
+          <div class="lb-empty" id="lbEmpty" hidden><p id="lbEmptyText"></p><button class="btn" type="button" id="lbPlay">Start the full run</button></div>
+        </div>
+        <div class="board-side">
+          <div class="side-block">
+            <h2>Your place</h2>
+            <p class="my-rank num" id="myRank"></p>
+            <p id="myRankNote"></p>
+          </div>
+          <div class="side-block">
+            <h2 id="resetHead">Resets in</h2>
+            <p id="resetNote"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ SCORING ═══════════ -->
+  <section class="page scoring" data-page="scoring" aria-labelledby="scoring-h" hidden>
+    <div class="wrap page-pad">
+      <h1 class="page-title" id="scoring-h" data-rise>How it adds up</h1>
+      <div class="explain" data-rise>
+        <p>Each test turns your result into points from 1 to 99 on a smooth curve, where 50 points is a typical result. Your Sigma Score is the average of the four, from one full run.</p>
+        <p>The σ figure says how far that is from typical, in standard deviations: +1σ beats about 84 in 100 people, +2σ about 98. The typical values are our estimates from common results on tests like these, not a survey, so read it as a fair comparison between players here.</p>
+      </div>
+      <div class="scale-wrap" data-ui data-rise>
+        <table class="scale">
+          <thead><tr><th scope="col">Test</th><th scope="col">10 points · −1.3σ</th><th scope="col">50 points · typical</th><th scope="col">90 points · +1.3σ</th><th scope="col">Better is</th></tr></thead>
+          <tbody id="scaleBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ HELP ═══════════ -->
+  <div class="page" data-page="help" hidden>
+    <div class="faq-head"><div class="wrap"><h1 class="page-title" data-rise>Help</h1></div></div>
+    <section class="qa" aria-labelledby="q1"><div class="wrap grid">
+      <h2 id="q1" data-rise>How do I make an account?</h2>
+      <div class="ans" data-rise><p>Choose <a href="#signup">Sign up</a>, pick a username and a password of at least 8 characters. Sign in with them on any device and your scores come with you.</p></div>
+    </div></section>
+    <section class="qa" aria-labelledby="q2"><div class="wrap grid">
+      <h2 id="q2" data-rise>Can I play without one?</h2>
+      <div class="ans" data-rise><p>Yes. Every test works without an account and your bests stay in this browser. Results from this visit are saved to your account as soon as you sign up or sign in.</p></div>
+    </div></section>
+    <section class="qa" aria-labelledby="q3"><div class="wrap grid">
+      <h2 id="q3" data-rise>What does +1.2σ mean?</h2>
+      <div class="ans" data-rise><p>It's how far your score sits from typical, in standard deviations. 0σ is exactly typical. +1σ beats roughly 84 in 100 people and +2σ roughly 98 in 100.</p></div>
+    </div></section>
+    <section class="qa" aria-labelledby="q4"><div class="wrap grid">
+      <h2 id="q4" data-rise>How safe is my password?</h2>
+      <div class="ans" data-rise><p>Passwords are handled by Supabase, the service that runs the accounts. They're sent over an encrypted connection and stored only as a secure hash, never as typed. Even so, this is a game, not a bank: use a password you don't use anywhere else.</p></div>
+    </div></section>
+    <section class="qa" aria-labelledby="q5"><div class="wrap grid">
+      <h2 id="q5" data-rise>I forgot my password</h2>
+      <div class="ans" data-rise><p>There's no email on file, so it can't be reset from here. Ask the person who runs Sigma Score to reset it for you, or sign up again with a new username.</p></div>
+    </div></section>
+    <section class="qa" aria-labelledby="q6"><div class="wrap grid">
+      <h2 id="q6" data-rise>Why can't I paste in number memory?</h2>
+      <div class="ans" data-rise><p>Because it would test your clipboard, not your memory. The number is drawn as a picture, so it can't be selected, and the answer box ignores pasted or dropped text.</p></div>
+    </div></section>
+    <section class="qa" aria-labelledby="q7"><div class="wrap grid">
+      <h2 id="q7" data-rise>Why can't I save my scores?</h2>
+      <div class="ans" data-rise><p>Saving needs you signed in. Results you play as a guest stay in this browser and are saved to your account as soon as you sign up or sign in during the same visit.</p></div>
+    </div></section>
+    <section class="qa" aria-labelledby="q8"><div class="wrap grid">
+      <h2 id="q8" data-rise>Could someone fake a score?</h2>
+      <div class="ans" data-rise><p>The server works out the points itself and rejects impossible results, but tests are still timed in each player's own browser, so a determined person could fake one. Treat the board as a friendly competition.</p><p><button type="button" class="linkish" id="clearLocal">Clear the guest bests in this browser</button> <span id="clearMsg" role="status"></span></p></div>
+    </div></section>
+  </div>
+
+  <!-- ═══════════ SIGN IN ═══════════ -->
+  <section class="page field-mint on-mint" data-page="signin" aria-labelledby="signin-h" hidden>
+    <div class="wrap page-pad auth-page">
+      <div class="copy">
+        <h1 class="page-title" id="signin-h" data-rise>Welcome back</h1>
+        <p data-rise>Sign in to save your results and see where you rank today, this week and all time.</p>
+      </div>
+      <form class="auth-form" id="signinForm" data-rise novalidate>
+        <div class="field"><label for="siUser">Username</label><input id="siUser" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="16" required></div>
+        <div class="field"><label for="siPass">Password</label><input id="siPass" name="password" type="password" autocomplete="current-password" maxlength="128" required></div>
+        <label class="show-pw"><input type="checkbox" id="siShow"> Show password</label>
+        <p class="form-msg" id="siMsg" role="status"></p>
+        <div><button class="btn" type="submit" id="siBtn">Sign in</button></div>
+        <p>No account yet? <a href="#signup" class="linkish">Sign up</a></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- ═══════════ SIGN UP ═══════════ -->
+  <section class="page field-pink" data-page="signup" aria-labelledby="signup-h" hidden>
+    <div class="wrap page-pad auth-page">
+      <div class="copy">
+        <h1 class="page-title" id="signup-h" data-rise>Create your account</h1>
+        <p data-rise>Pick the name other players will see on the leaderboard.</p>
+      </div>
+      <form class="auth-form" id="signupForm" data-rise novalidate>
+        <div class="field"><label for="suUser">Username</label><input id="suUser" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="16" required aria-describedby="suUserHint"><span class="hint" id="suUserHint">3 to 16 letters, digits, - or _. Shown publicly.</span></div>
+        <div class="field"><label for="suPass">Password</label><input id="suPass" name="password" type="password" autocomplete="new-password" maxlength="128" required aria-describedby="suPassHint"><span class="hint" id="suPassHint">At least 8 characters. Use one you don't use anywhere else.</span></div>
+        <div class="field"><label for="suPass2">Confirm password</label><input id="suPass2" name="password2" type="password" autocomplete="new-password" maxlength="128" required></div>
+        <label class="show-pw"><input type="checkbox" id="suShow"> Show passwords</label>
+        <p class="form-msg" id="suMsg" role="status"></p>
+        <div><button class="btn" type="submit" id="suBtn">Create account</button></div>
+        <p>Already have one? <a href="#signin" class="linkish">Sign in</a></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- ═══════════ PROFILE ═══════════ -->
+  <section class="page profile" data-page="profile" aria-labelledby="profile-h" hidden>
+    <div class="wrap page-pad">
+      <div class="p-head">
+        <h1 class="page-title" id="profile-h">Profile</h1>
+        <button class="btn" type="button" id="startFull3">Start the full run</button>
+      </div>
+      <div class="stat-row" id="pStats"></div>
+      <div class="p-curve" data-ui>
+        <h2>Your best points on each test</h2>
+        <div class="bars" id="pBars"></div>
+      </div>
+      <div class="p-recent">
+        <h2>Recent results</h2>
+        <div id="pRecent"><p>Loading…</p></div>
+      </div>
+      <form class="auth-form p-pw" id="pwForm" novalidate>
+        <h2>Change password</h2>
+        <div class="field"><label for="pwOld">Current password</label><input id="pwOld" type="password" autocomplete="current-password" maxlength="128"></div>
+        <div class="field"><label for="pwNew">New password</label><input id="pwNew" type="password" autocomplete="new-password" maxlength="128"><span class="hint">At least 8 characters.</span></div>
+        <p class="form-msg" id="pwMsg" role="status"></p>
+        <div><button class="btn" type="submit" id="pwBtn">Change password</button></div>
+      </form>
+      <div class="p-out">
+        <div><h2>Sign out</h2><p>Signing out only affects this browser. Your scores stay on the leaderboard.</p></div>
+        <button class="btn dark" type="button" id="signOut">Sign out</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot" aria-labelledby="foot-h">
+  <div class="wrap">
+    <h2 class="foot-big" id="foot-h"><button type="button" id="footRun">Beat your score</button></h2>
+    <p class="foot-note"><strong>Sigma Score</strong>: four tests of reaction and memory, timed in your browser with its high-resolution clock.</p>
+    <div class="foot-meta">
+      <nav aria-label="Footer"><a href="#home">Home</a><a href="#tests">Tests</a><a href="#leaderboard">Leaderboard</a><a href="#scoring">Scoring</a><a href="#help">Help</a></nav>
+      <span>Leaderboards reset at midnight UTC</span>
+    </div>
+  </div>
+</footer>
+
+<div class="arena" id="arena" role="dialog" aria-modal="true" aria-labelledby="arenaTitle" hidden>
+  <div class="arena-bar wrap">
+    <div class="steps" id="arenaSteps"></div>
+    <button type="button" class="btn quiet small" id="arenaClose">Close</button>
+  </div>
+  <div class="arena-body wrap" id="arenaBody"></div>
+</div>
+
+<script>
+(() => {
+  /* ═══════════════════════════════════════════════════════════════════
+     SETUP: paste your Supabase project's URL and anon (public) key here.
+     Find both in Supabase → Project Settings → API. See README.md.
+     ═══════════════════════════════════════════════════════════════════ */
+  const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  // Usernames are turned into a login address behind the scenes (name@this-domain).
+  // No email is ever sent. Change it only if Supabase rejects sign-ups (see README).
+  const EMAIL_DOMAIN = 'players.sigmascore.app';
+
+  document.documentElement.classList.add('js');
+  const $ = id => document.getElementById(id);
+  const el = (tag, attrs = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') n.className = v; else if (k === 'text') n.textContent = v;
+      else if (k.startsWith('on')) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+    }
+    kids.flat().forEach(c => c != null && n.append(c));
+    return n;
+  };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const store = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } },
+                  set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+
+  /* ================= Tests and scoring (must match supabase-setup.sql) ================= */
+  const TESTS = [
+    { id: 'reaction', name: 'Reaction', short: 'Reaction', lower: true, m: 273, s: 30,
+      blurb: 'Click the moment the panel turns green. Five rounds, averaged.', fmt: v => `${v} ms` },
+    { id: 'sequence', name: 'Sequence memory', short: 'Sequence', lower: false, m: 8, s: 1.8,
+      blurb: 'Watch tiles light up in order, then repeat it. One more each level.', fmt: v => `level ${v}` },
+    { id: 'number', name: 'Number memory', short: 'Number', lower: false, m: 8, s: 1.2,
+      blurb: 'Read the number, wait for it to hide, then type it from memory. One more digit each time.', fmt: v => `${v} digits` },
+    { id: 'visual', name: 'Visual memory', short: 'Visual', lower: false, m: 8, s: 2,
+      blurb: 'Remember which tiles flash, then find them all. Three lives.', fmt: v => `level ${v}` },
+  ];
+  const T = Object.fromEntries(TESTS.map(t => [t.id, t]));
+  const points = (id, v) => {
+    const t = T[id]; const z = (v - t.m) / t.s;
+    const p = 100 / (1 + Math.exp(t.lower ? z : -z));
+    return Math.max(1, Math.min(99, Math.round(p)));
+  };
+  const valueAt = (id, p) => { const t = T[id]; const k = Math.log(100 / p - 1) * t.s; return t.lower ? t.m + k : t.m - k; };
+  const roundVal = (id, p) => { const v = valueAt(id, p); return T[id].lower ? Math.round(v / 5) * 5 : Math.round(v); };
+  const sigma = res => Math.round(TESTS.reduce((a, t) => a + points(t.id, res[t.id]), 0) / TESTS.length);
+  function probit(p) {
+    const a = [-39.6968302866538, 220.946098424521, -275.928510446969, 138.357751867269, -30.6647980661472, 2.50662827745924];
+    const b = [-54.4760987982241, 161.585836858041, -155.698979859887, 66.8013118877197, -13.2806815528857];
+    const c = [-0.00778489400243029, -0.322396458041136, -2.40075827716184, -2.54973253934373, 4.37466414146497, 2.93816398269878];
+    const d = [0.00778469570904146, 0.32246712907004, 2.445134137143, 3.75440866190742];
+    const pl = 0.02425; let q, r;
+    if (p < pl) { q = Math.sqrt(-2 * Math.log(p)); return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+    if (p <= 1 - pl) { q = p - 0.5; r = q * q; return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1); }
+    q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  const sigmaText = pts => { const z = probit(Math.max(1, Math.min(99, pts)) / 100); const a = Math.abs(z).toFixed(1); return a === '0.0' ? '0.0σ' : `${z > 0 ? '+' : '−'}${a}σ`; };
+
+  /* ================= Time windows (UTC) ================= */
+  function sinceFor(period) {
+    if (period === 'all') return null;
+    const n = new Date(), d = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()));
+    if (period === 'week') d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() || 7) - 1));
+    return d.toISOString();
+  }
+  const untilNext = period => {
+    const now = new Date();
+    const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+    if (period === 'week') { const dow = now.getUTCDay() || 7; next.setUTCDate(next.getUTCDate() + (7 - dow)); }
+    const mins = Math.max(0, Math.round((next - now) / 60000));
+    const d = Math.floor(mins / 1440), h = Math.floor((mins % 1440) / 60), m = mins % 60;
+    return d ? `${d} d ${h} h` : h ? `${h} h ${m} min` : `${m} min`;
+  };
+
+  /* ================= Guest bests (this browser) ================= */
+  const LKEY = 'sigma.guest.v2';
+  let local = store.get(LKEY) || { best: {}, sigma: null };
+  if (!local.best) local = { best: {}, sigma: null };
+  function recordLocal(rec) {
+    for (const [id, raw] of Object.entries(rec.results)) {
+      if (!T[id]) continue;
+      const p = points(id, raw), cur = local.best[id];
+      if (!cur || p > cur.p || (p === cur.p && (T[id].lower ? raw < cur.raw : raw > cur.raw))) local.best[id] = { p, raw };
+    }
+    if (rec.type === 'full') { const h = sigma(rec.results); if (local.sigma == null || h > local.sigma) local.sigma = h; }
+    store.set(LKEY, local);
+  }
+
+  /* ================= Supabase ================= */
+  const configured = /^https:\/\/[^/]+$/.test(SUPABASE_URL.replace(/\/$/, '')) && SUPABASE_ANON_KEY.length > 20 && window.supabase && window.supabase.createClient;
+  const sb = configured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+  let user = null;            // { id, username }
+  let mine = [];              // this player's saved result rows, newest first
+  const pending = [];         // results from this visit waiting for sign-in
+  const boards = new Map();   // "test|period" -> { rows, at }
+
+  const USER_RE = /^[A-Za-z0-9_-]{3,16}$/;
+  const emailFor = name => `${name.toLowerCase()}@${EMAIL_DOMAIN}`;
+  const colorFor = name => { let h = 0; for (const c of name.toLowerCase()) h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h} 42% 42%)`; };
+  const num = v => (v == null || v === '' ? null : Number(v));
+  async function call(promise) { const { data, error } = await promise; if (error) throw error; return data; }
+
+  function setUser(u) {
+    const id = u ? u.id : null;
+    if ((user && user.id) === id) return false;
+    user = u ? { id: u.id, username: (u.user_metadata && u.user_metadata.username) || (u.email || '').split('@')[0] } : null;
+    mine = [];
+    return true;
+  }
+  async function loadMine() {
+    if (!sb || !user) { mine = []; return; }
+    try {
+      mine = (await call(sb.from('results').select('test,points,raw,full_run,created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1000)))
+        .map(r => ({ ...r, raw: num(r.raw) }));
+    } catch (e) { /* keep what we have */ }
+  }
+  async function fetchBoard(test, period, force) {
+    if (!sb) return null;
+    const key = test + '|' + period, hit = boards.get(key);
+    if (hit && !force && Date.now() - hit.at < 20000) return hit.rows;
+    const rows = (await call(sb.rpc('leaderboard', { p_test: test, p_since: sinceFor(period), p_limit: 200 })) || [])
+      .map(r => ({ id: r.user_id, handle: r.username, v: r.points, raw: num(r.raw) }));
+    boards.set(key, { rows, at: Date.now() });
+    return rows;
+  }
+
+  function saveState() { if (!sb) return 'nodb'; if (!user) return 'guest'; return 'ok'; }
+  async function submit(rec) { await call(sb.rpc('submit_run', { p_results: rec.results, p_full: rec.type === 'full' })); }
+  async function saveRun(rec) {
+    recordLocal(rec);
+    const st = saveState();
+    if (st !== 'ok') { pending.push(rec); renderAll(); return st; }
+    try { await submit(rec); boards.clear(); await loadMine(); renderAll(); return 'saved'; }
+    catch (e) { pending.push(rec); renderAll(); return 'failed'; }
+  }
+  let flushing = false;
+  async function flushPending() {
+    if (flushing || !pending.length || saveState() !== 'ok') return;
+    flushing = true;
+    while (pending.length) {
+      try { await submit(pending[0]); pending.shift(); } catch (e) { break; }
+      if (pending.length) await sleep(2200);
+    }
+    flushing = false;
+    boards.clear(); await loadMine(); renderAll();
+  }
+
+  /* ================= Accounts ================= */
+  async function signUp(name, pw) {
+    if (await call(sb.rpc('username_taken', { p_name: name }))) throw { code: 'taken' };
+    const { data, error } = await sb.auth.signUp({ email: emailFor(name), password: pw, options: { data: { username: name } } });
+    if (error) {
+      if (/already|registered|exists|database error/i.test(error.message)) throw { code: 'taken' };
+      if (/invalid/i.test(error.message) && /email/i.test(error.message)) throw { code: 'domain' };
+      throw error;
+    }
+    if (!data.session) throw { code: 'confirm' };
+  }
+  async function signIn(name, pw) {
+    const { error } = await sb.auth.signInWithPassword({ email: emailFor(name), password: pw });
+    if (error) throw (/invalid login|invalid credentials/i.test(error.message) ? { code: 'wrong' } : error);
+  }
+  async function changePassword(oldPw, newPw) {
+    const { error: e1 } = await sb.auth.signInWithPassword({ email: emailFor(user.username), password: oldPw });
+    if (e1) throw { code: 'wrong' };
+    const { error } = await sb.auth.updateUser({ password: newPw });
+    if (error) throw error;
+  }
+  function accountsBlocked() {
+    if (!sb) return 'This copy of Sigma Score isn’t connected to its database yet, so accounts are off. The site owner needs to add the Supabase keys (see README.md). You can still play as a guest.';
+    return null;
+  }
+  function errText(e, fallback) {
+    if (!e) return fallback;
+    if (e.code === 'taken') return 'That username is taken. Try another.';
+    if (e.code === 'wrong') return 'Username or password is wrong.';
+    if (e.code === 'confirm') return 'Account created, but Supabase is still set to confirm emails, so it can’t sign you in. The site owner needs to turn off “Confirm email” (see README.md).';
+    if (e.code === 'domain') return 'Supabase rejected the sign-up address. The site owner needs to change EMAIL_DOMAIN (see README.md).';
+    if (e.message && /rate limit|too many/i.test(e.message)) return 'Too many tries. Wait a minute and try again.';
+    if (e.message && /password/i.test(e.message)) return e.message;
+    return fallback;
+  }
+
+  $('signupForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const msg = $('suMsg'), btn = $('suBtn');
+    const name = $('suUser').value.trim(), pw = $('suPass').value, pw2 = $('suPass2').value;
+    msg.className = 'form-msg err';
+    const blocked = accountsBlocked(); if (blocked) { msg.textContent = blocked; return; }
+    if (!USER_RE.test(name)) { msg.textContent = 'Usernames are 3 to 16 letters, digits, - or _.'; return $('suUser').focus(); }
+    if (pw.length < 8) { msg.textContent = 'Passwords need at least 8 characters.'; return $('suPass').focus(); }
+    if (pw !== pw2) { msg.textContent = 'The two passwords don’t match.'; return $('suPass2').focus(); }
+    msg.className = 'form-msg'; msg.textContent = 'Creating your account…'; btn.disabled = true;
+    try { await signUp(name, pw); $('signupForm').reset(); msg.textContent = ''; location.hash = 'profile'; }
+    catch (err) { msg.className = 'form-msg err'; msg.textContent = errText(err, 'Couldn’t create the account just now. Try again.'); }
+    btn.disabled = false;
+  });
+  $('signinForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const msg = $('siMsg'), btn = $('siBtn');
+    const name = $('siUser').value.trim(), pw = $('siPass').value;
+    msg.className = 'form-msg err';
+    const blocked = accountsBlocked(); if (blocked) { msg.textContent = blocked; return; }
+    if (!name || !pw) { msg.textContent = 'Enter your username and password.'; return; }
+    if (!USER_RE.test(name)) { msg.textContent = 'Username or password is wrong.'; return; }
+    msg.className = 'form-msg'; msg.textContent = 'Signing in…'; btn.disabled = true;
+    try { await signIn(name, pw); $('signinForm').reset(); msg.textContent = ''; location.hash = afterSignIn || 'profile'; afterSignIn = null; }
+    catch (err) { msg.className = 'form-msg err'; msg.textContent = errText(err, 'Couldn’t sign in just now. Try again.'); }
+    btn.disabled = false;
+  });
+  $('pwForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const msg = $('pwMsg'), btn = $('pwBtn'), oldPw = $('pwOld').value, newPw = $('pwNew').value;
+    msg.className = 'form-msg err';
+    if (newPw.length < 8) { msg.textContent = 'New passwords need at least 8 characters.'; return; }
+    msg.className = 'form-msg'; msg.textContent = 'Saving…'; btn.disabled = true;
+    try { await changePassword(oldPw, newPw); $('pwForm').reset(); msg.className = 'form-msg ok'; msg.textContent = 'Password changed.'; }
+    catch (err) { msg.className = 'form-msg err'; msg.textContent = err && err.code === 'wrong' ? 'Your current password is wrong.' : errText(err, 'Couldn’t change it just now. Try again.'); }
+    btn.disabled = false;
+  });
+  $('signOut').addEventListener('click', async () => { if (sb) await sb.auth.signOut(); setUser(null); location.hash = 'home'; renderAll(); });
+  $('siShow').addEventListener('change', e => { $('siPass').type = e.target.checked ? 'text' : 'password'; });
+  $('suShow').addEventListener('change', e => { $('suPass').type = $('suPass2').type = e.target.checked ? 'text' : 'password'; });
+
+  /* ================= Pages ================= */
+  const PAGES = ['home', 'tests', 'leaderboard', 'scoring', 'help', 'signin', 'signup', 'profile'];
+  let current = null, afterSignIn = null, authKnown = !sb;
+  function route() {
+    let p = location.hash.slice(1);
+    if (!PAGES.includes(p)) p = 'home';
+    if (authKnown && p === 'profile' && !user) { afterSignIn = 'profile'; p = 'signin'; }
+    if ((p === 'signin' || p === 'signup') && user) p = 'profile';
+    if (p === current) return;
+    current = p;
+    document.querySelectorAll('[data-page]').forEach(s => { s.hidden = s.dataset.page !== p; });
+    markNav();
+    window.scrollTo(0, 0);
+    renderPage();
+    animateIn(document.querySelector(`[data-page="${p}"]`));
+    const h = document.querySelector(`[data-page="${p}"] h1`);
+    if (h && document.activeElement && document.activeElement !== document.body) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+  }
+  function markNav() {
+    document.querySelectorAll('[data-nav]').forEach(a => a.dataset.nav === current ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
+  }
+  window.addEventListener('hashchange', route);
+
+  /* ================= Rendering ================= */
+  function bestsFromMine() {
+    const b = {};
+    for (const r of mine) {
+      const cur = b[r.test];
+      const lower = T[r.test] && T[r.test].lower;
+      if (!cur || r.points > cur.p || (r.points === cur.p && r.raw != null && (lower ? r.raw < cur.raw : r.raw > cur.raw))) b[r.test] = { p: r.points, raw: r.raw };
+    }
+    return b;
+  }
+  function myBests() {
+    if (user) { const b = bestsFromMine(); return { sigma: b.sigma ? b.sigma.p : null, tests: Object.fromEntries(TESTS.map(t => [t.id, b[t.id] || null])) }; }
+    return { sigma: local.sigma, tests: Object.fromEntries(TESTS.map(t => [t.id, local.best[t.id] || null])) };
+  }
+  function barsInto(node, vals) {
+    node.replaceChildren();
+    for (const t of TESTS) {
+      const v = vals[t.id];
+      node.append(el('div', { class: 'barrow' }, el('span', { text: t.name }),
+        el('span', { class: 'track', 'aria-hidden': 'true' }, el('i', { class: 'fill', style: `width:${v || 0}%` }), el('i', { class: 'mid' })),
+        el('b', { class: 'num', text: v != null ? String(v) : '–' })));
+    }
+  }
+  const EXAMPLE = { reaction: 248, sequence: 9, number: 8, visual: 10 };
+  function renderCard() {
+    const b = myBests(), haveAny = TESTS.some(t => b.tests[t.id]);
+    const vals = haveAny ? Object.fromEntries(TESTS.map(t => [t.id, b.tests[t.id] ? b.tests[t.id].p : null]))
+                         : Object.fromEntries(TESTS.map(t => [t.id, points(t.id, EXAMPLE[t.id])]));
+    const score = haveAny ? b.sigma : sigma(EXAMPLE);
+    $('cardWho').textContent = haveAny ? (user ? user.username : 'You, as a guest') : 'Example card';
+    $('cardScore').textContent = score != null ? score : '–';
+    $('cardSigma').textContent = score != null ? sigmaText(score) : '?σ';
+    $('cardFoot').textContent = haveAny
+      ? (b.sigma != null ? 'Your best points on each test. The line marks 50, a typical result.' : 'Finish a full run to get your Sigma Score. The line marks 50, a typical result.')
+      : 'Finish a full run to see your own card. The line marks 50, a typical result.';
+    barsInto($('cardBars'), vals);
+  }
+  function renderAuthArea() {
+    const a = $('authArea'); a.replaceChildren();
+    if (user) {
+      const dot = el('span', { class: 'dot', 'aria-hidden': 'true' }); dot.style.background = colorFor(user.username);
+      a.append(el('a', { class: 'me-chip', href: '#profile', 'data-nav': 'profile' }, dot, el('span', { text: user.username })));
+    } else {
+      a.append(el('a', { class: 'signin-link', href: '#signin', 'data-nav': 'signin', text: 'Sign in' }),
+               el('a', { class: 'btn small', href: '#signup', 'data-nav': 'signup', text: 'Sign up' }));
+    }
+    markNav();
+    const ha = $('heroAcct');
+    ha.textContent = user ? 'Your profile' : 'Create an account';
+    ha.setAttribute('href', user ? '#profile' : '#signup');
+  }
+  let podiumTok = 0;
+  async function renderPodium() {
+    const tok = ++podiumTok, pod = $('podium');
+    let rows = [], note;
+    if (!sb) note = 'The leaderboard isn’t connected yet. You can still play; your bests stay in this browser.';
+    else { try { rows = await fetchBoard('sigma', 'day'); } catch (e) { note = 'Couldn’t load today’s board. It will try again shortly.'; } }
+    if (tok !== podiumTok) return;
+    const mineIdx = user ? rows.findIndex(r => r.id === user.id) : -1;
+    $('todayCap').textContent = note
+      || (rows.length > 3 && mineIdx >= 3 ? `${rows.length} players finished a full run today. You’re #${mineIdx + 1}.`
+      : rows.length ? `${rows.length} player${rows.length === 1 ? '' : 's'} finished a full run today.`
+      : 'No full runs yet today. Every spot is open.');
+    pod.replaceChildren();
+    ['First', 'Second', 'Third'].forEach((place, i) => {
+      const r = rows[i];
+      if (r) pod.append(el('li', {}, el('span', { class: 'pts num', text: String(r.v) }),
+        el('span', { class: 'name' }, r.handle + (user && r.id === user.id ? ' (you)' : ''), el('span', { class: 'place', text: `${place} place · ${sigmaText(r.v)}` }))));
+      else pod.append(el('li', { class: 'open' }, el('span', { class: 'pts', text: 'Open' }),
+        el('span', { class: 'name' }, `${place} place`, el('span', { class: 'place', text: 'Finish a full run to take it' }))));
+    });
+    pod.append(el('li', { class: 'more' }, rows.length
+      ? el('a', { class: 'btn light', href: '#leaderboard', text: 'Full leaderboard' })
+      : el('button', { class: 'btn light', type: 'button', onclick: () => startRun('full'), text: 'Start the full run' })));
+  }
+  function renderFour() {
+    const g = $('fourGrid'); if (g.children.length) return;
+    for (const t of TESTS) g.append(el('li', { 'data-rise': '' }, el('a', { href: '#tests' }, preview(t.id),
+      el('span', { class: 'lab' }, el('b', { text: t.name }), el('span', { text: `Typical: ${t.fmt(roundVal(t.id, 50))}` })))));
+  }
+  function renderTests() {
+    const list = $('testList');
+    if (!list.children.length) {
+      for (const t of TESTS) {
+        list.append(el('li', { class: 'test-row', 'data-rise': '' },
+          el('div', { class: 'info' }, el('h2', { text: t.name }), el('p', { text: t.blurb }),
+            el('div', { class: 'facts' },
+              el('div', {}, el('span', { text: 'Typical' }), el('b', { class: 'num', text: t.fmt(roundVal(t.id, 50)) })),
+              el('div', {}, el('span', { text: 'Top 10%' }), el('b', { class: 'num', text: t.fmt(roundVal(t.id, 90)) })),
+              el('div', {}, el('span', { text: 'Your best' }), el('b', { class: 'num', id: 'best-' + t.id, text: 'None yet' }))),
+            el('div', { class: 'go' }, el('button', { class: 'btn', type: 'button', onclick: () => startRun('single', t.id), text: `Play ${t.short.toLowerCase()}` }))),
+          preview(t.id)));
+      }
+    }
+    const b = myBests();
+    for (const t of TESTS) { const x = b.tests[t.id]; $('best-' + t.id).textContent = x ? t.fmt(x.raw) : 'None yet'; }
+  }
+  function preview(id) {
+    const pv = el('div', { class: 'pv', 'data-ui': '', 'aria-hidden': 'true' });
+    const grid = (n, on) => { const g = el('div', { class: 'g', style: `grid-template-columns:repeat(${n},1fr)` }); for (let i = 0; i < n * n; i++) g.append(el('i', { class: on.includes(i) ? 'on' : '' })); return g; };
+    if (id === 'reaction') { pv.classList.add('green'); pv.append(el('span', { text: 'Round 3 of 5' }), el('b', { text: 'Click!' }), el('span', { text: '231 ms · 248 ms' })); }
+    if (id === 'sequence') pv.append(grid(3, [4]));
+    if (id === 'number') { pv.classList.add('digits'); pv.append(el('b', { text: '4827 1036' }), el('span', { class: 'bar' }, el('i'))); }
+    if (id === 'visual') pv.append(grid(4, [1, 6, 8, 11, 15]));
+    return pv;
+  }
+  function renderScale() {
+    const body = $('scaleBody'); if (body.children.length) return;
+    for (const t of TESTS) body.append(el('tr', {}, el('td', { text: t.name }), el('td', { text: t.fmt(roundVal(t.id, 10)) }),
+      el('td', { class: 'mid', text: t.fmt(roundVal(t.id, 50)) }), el('td', { text: t.fmt(roundVal(t.id, 90)) }), el('td', { text: t.lower ? 'Lower' : 'Higher' })));
+  }
+
+  /* leaderboard */
+  let period = 'day', metric = 'sigma';
+  const metricCtl = $('metricCtl');
+  [['sigma', 'Sigma Score'], ...TESTS.map(t => [t.id, t.short])].forEach(([id, name]) =>
+    metricCtl.append(el('button', { type: 'button', 'data-m': id, 'aria-pressed': String(id === metric), text: name })));
+  metricCtl.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; metric = b.dataset.m; [...metricCtl.children].forEach(x => x.setAttribute('aria-pressed', String(x === b))); renderBoard(); });
+  $('periodCtl').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; period = b.dataset.p; [...$('periodCtl').children].forEach(x => x.setAttribute('aria-pressed', String(x === b))); renderBoard(); });
+  $('lbPlay').addEventListener('click', () => startRun(metric === 'sigma' ? 'full' : 'single', metric));
+
+  const periodWord = () => ({ day: 'today', week: 'this week', all: 'yet' })[period];
+  function setRank(text, none) { const r = $('myRank'); r.classList.toggle('none', !!none); if (none) r.textContent = text; else r.innerHTML = text; }
+  let boardTok = 0;
+  async function renderBoard(force) {
+    const tok = ++boardTok, body = $('lbBody'), empty = $('lbEmpty'), table = $('lbTable');
+    $('valHead').textContent = metric === 'sigma' ? 'Sigma Score' : 'Points';
+    $('resetHead').textContent = period === 'all' ? 'All time' : 'Resets in';
+    $('resetNote').textContent = period === 'all' ? 'Every player’s best result since they joined.' : `${untilNext(period)}, at midnight UTC${period === 'week' ? ' on Monday' : ''}.`;
+    $('lbPlay').textContent = metric === 'sigma' ? 'Start the full run' : `Play ${T[metric].short.toLowerCase()}`;
+    if (!sb) {
+      body.replaceChildren(); table.hidden = true; empty.hidden = false;
+      $('lbEmptyText').textContent = 'The leaderboard isn’t connected yet. You can still play; your bests stay in this browser.';
+      setRank('Not on a board yet', true); $('myRankNote').textContent = '';
+      return;
+    }
+    let rows;
+    try { rows = await fetchBoard(metric, period, force); }
+    catch (e) {
+      if (tok !== boardTok) return;
+      body.replaceChildren(); table.hidden = true; empty.hidden = false;
+      $('lbEmptyText').textContent = 'Couldn’t load the leaderboard. Check your connection; it will try again shortly.';
+      return;
+    }
+    if (tok !== boardTok) return;
+    body.replaceChildren();
+    const mName = metric === 'sigma' ? 'full run' : T[metric].name.toLowerCase() + ' result';
+    table.hidden = !rows.length; empty.hidden = rows.length > 0;
+    if (!rows.length) $('lbEmptyText').textContent = `No one has posted a ${mName} ${periodWord()}. Be the first.`;
+    rows.slice(0, 100).forEach((r, i) => {
+      const isMe = user && r.id === user.id;
+      const dot = el('i', { 'aria-hidden': 'true' }); dot.style.background = colorFor(r.handle);
+      body.append(el('tr', { class: isMe ? 'me' : '' },
+        el('td', { class: 'rank', text: String(i + 1) }),
+        el('td', {}, el('span', { class: 'who' }, dot, el('span', { text: r.handle }), isMe ? el('em', { class: 'you', text: 'you' }) : null)),
+        el('td', { class: 'val', text: String(r.v) }),
+        el('td', { class: 'raw', text: r.raw != null && metric !== 'sigma' ? T[metric].fmt(r.raw) : sigmaText(r.v) })));
+    });
+    const idx = user ? rows.findIndex(r => r.id === user.id) : -1;
+    if (idx >= 0) {
+      setRank(`#${idx + 1}<small>of ${rows.length}</small>`);
+      const gap = idx ? rows[idx - 1].v - rows[idx].v : 0;
+      $('myRankNote').textContent = idx === 0 ? 'You’re in front. Keep it that way.' : gap ? `${gap} point${gap === 1 ? '' : 's'} behind #${idx}.` : `Level on points with #${idx}.`;
+    } else {
+      setRank(user ? 'Not on this board yet' : 'Signed out', true);
+      $('myRankNote').textContent = user ? `Post a ${mName}${period === 'all' ? '' : ' ' + periodWord()} to appear here.` : 'Sign in to appear here.';
+    }
+  }
+
+  /* profile */
+  async function renderProfile() {
+    if (!user) return;
+    $('profile-h').textContent = user.username;
+    const b = bestsFromMine();
+    const saved = mine.filter(r => !r.full_run || r.test === 'sigma').length;
+    const stat = (v, label) => el('div', {}, v == null ? el('b', { class: 'none', text: 'None yet' }) : el('b', { class: 'num', text: v }), el('span', { text: label }));
+    const paint = (dayIdx, allIdx) => $('pStats').replaceChildren(
+      stat(b.sigma ? String(b.sigma.p) : null, b.sigma ? `best Sigma Score · ${sigmaText(b.sigma.p)}` : 'best Sigma Score'),
+      stat(dayIdx >= 0 ? `#${dayIdx + 1}` : null, 'today’s rank'),
+      stat(allIdx >= 0 ? `#${allIdx + 1}` : null, 'all-time rank'),
+      stat(String(saved), 'results saved'));
+    paint(-1, -1);
+    barsInto($('pBars'), Object.fromEntries(TESTS.map(t => [t.id, b[t.id] ? b[t.id].p : null])));
+    // recent results
+    const list = el('ul', { class: 'recent' });
+    for (const r of mine) {
+      if (list.children.length >= 10) break;
+      if (r.full_run && r.test !== 'sigma') continue;
+      const when = new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const what = r.test === 'sigma' ? `Full run · Sigma Score ${r.points}` : `${T[r.test] ? T[r.test].name : r.test} · ${T[r.test] ? T[r.test].fmt(r.raw) : r.raw}`;
+      list.append(el('li', {}, el('span', { text: what }), el('span', { text: when })));
+    }
+    $('pRecent').replaceChildren(list.children.length ? list : el('p', { text: 'Nothing saved yet. Your next result will show here.' }));
+    try {
+      const [day, all] = await Promise.all([fetchBoard('sigma', 'day'), fetchBoard('sigma', 'all')]);
+      if (current === 'profile' && user) paint(day.findIndex(r => r.id === user.id), all.findIndex(r => r.id === user.id));
+    } catch (e) {}
+  }
+
+  function renderPage(force) {
+    if (current === 'home') renderPodium();
+    if (current === 'leaderboard') renderBoard(force);
+    if (current === 'profile') { if (user) renderProfile(); else if (authKnown) route(); }
+  }
+  function renderAll() {
+    renderCard(); renderAuthArea(); renderTests();
+    if (current === 'profile' && !user && authKnown) { current = null; route(); return; }
+    renderPage();
+  }
+
+  /* ================= Arena and runs ================= */
+  const arena = $('arena'), body = $('arenaBody');
+  let run = null, cleanup = null, lastFocus = null;
+  function startRun(mode, id) {
+    run = { mode, queue: mode === 'full' ? TESTS.map(t => t.id) : [id], i: 0, results: {} };
+    lastFocus = document.activeElement;
+    arena.hidden = false; document.body.classList.add('locked');
+    intro();
+  }
+  function closeArena() {
+    if (cleanup) { cleanup(); cleanup = null; }
+    run = null; arena.hidden = true; document.body.classList.remove('locked');
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  $('arenaClose').addEventListener('click', closeArena);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !arena.hidden) closeArena(); });
+  ['startFull', 'startFull2', 'startFull3', 'footRun'].forEach(id => $(id).addEventListener('click', () => startRun('full')));
+  const go = page => { closeArena(); location.hash = page; };
+
+  function steps() {
+    const s = $('arenaSteps'); s.replaceChildren();
+    if (run.mode === 'full') {
+      s.append(el('span', { class: 'lbl', text: 'Full run' }));
+      run.queue.forEach((id, i) => s.append(el('span', { class: i < run.i ? 'done' : i === run.i ? 'now' : '', text: T[id].short })));
+    } else s.append(el('span', { class: 'now', text: T[run.queue[0]].name }));
+  }
+  function screen(...kids) { body.replaceChildren(el('div', { class: 'play' }, ...kids)); steps(); }
+  const cur = () => T[run.queue[run.i]];
+  function intro() {
+    const t = cur();
+    const b = el('button', { class: 'btn', type: 'button', onclick: play, text: 'Start' });
+    screen(el('div', { class: 'play-head' }, el('h2', { id: 'arenaTitle', text: run.mode === 'full' ? `${run.i + 1} of ${TESTS.length}: ${t.name}` : t.name }), el('p', { text: t.blurb })),
+      el('div', { class: 'play-row' }, b));
+    b.focus();
+  }
+  function play() {
+    const t = cur(), stage = el('div');
+    screen(el('div', { class: 'play-head' }, el('h2', { id: 'arenaTitle', text: t.name })), stage);
+    cleanup = RUNNERS[t.id](stage, raw => { if (cleanup) cleanup(); cleanup = null; run.results[t.id] = raw; afterTest(); });
+  }
+  async function afterTest() {
+    const t = cur(), raw = run.results[t.id], p = points(t.id, raw), last = run.i === run.queue.length - 1;
+    const big = el('p', { class: 'big num' }, String(p), el('small', { text: `points · ${sigmaText(p)}` }));
+    const what = el('p', { class: 'what', text: `${t.name}: ${t.fmt(raw)}. ${verdict(p)}` });
+    const row = el('div', { class: 'play-row' });
+    if (run.mode === 'full' && !last) {
+      const next = T[run.queue[run.i + 1]];
+      const b = el('button', { class: 'btn', type: 'button', onclick: () => { run.i++; intro(); }, text: `Next: ${next.name}` });
+      row.append(b);
+      screen(el('div', { class: 'result' }, el('h2', { id: 'arenaTitle', class: 'sr', text: `${t.name} result` }), big, what, row));
+      big.classList.add('pop'); b.focus(); return;
+    }
+    if (run.mode === 'full') return finishFull();
+    const note = el('p', { class: 'save-note', text: 'Saving…' });
+    const again = el('button', { class: 'btn', type: 'button', onclick: () => { run.results = {}; intro(); }, text: 'Play again' });
+    row.append(again, el('button', { class: 'btn quiet', type: 'button', onclick: closeArena, text: 'Done' }));
+    screen(el('div', { class: 'result' }, el('h2', { id: 'arenaTitle', class: 'sr', text: `${t.name} result` }), big, what, note, row));
+    big.classList.add('pop'); again.focus();
+    describeSave(note, await saveRun({ type: 'single', at: Date.now(), results: { [t.id]: raw } }), t.id);
+  }
+  async function finishFull() {
+    const res = { ...run.results }, h = sigma(res);
+    const bars = el('div', { class: 'bars' });
+    barsInto(bars, Object.fromEntries(TESTS.map(t => [t.id, points(t.id, res[t.id])])));
+    const note = el('p', { class: 'save-note', text: 'Saving…' });
+    const big = el('p', { class: 'big num' }, String(h), el('small', { text: `Sigma Score · ${sigmaText(h)}` }));
+    const again = el('button', { class: 'btn', type: 'button', onclick: () => startRun('full'), text: 'Run it again' });
+    const board = el('button', { class: 'btn quiet', type: 'button', onclick: () => go('leaderboard'), text: 'See the leaderboard' });
+    screen(el('div', { class: 'result' }, el('h2', { id: 'arenaTitle', class: 'sr', text: 'Your Sigma Score' }), big,
+      el('p', { class: 'what', text: verdict(h, true) }), bars, note, el('div', { class: 'play-row' }, again, board)));
+    big.classList.add('pop'); again.focus();
+    describeSave(note, await saveRun({ type: 'full', at: Date.now(), results: res }), 'sigma');
+  }
+  async function describeSave(note, st, metricId) {
+    note.replaceChildren(); note.className = 'save-note';
+    if (st === 'saved') {
+      note.classList.add('ok');
+      note.textContent = `Saved to ${user.username}.`;
+      try {
+        const rows = await fetchBoard(metricId, 'day', true), idx = rows.findIndex(r => r.id === user.id);
+        const board = metricId === 'sigma' ? 'Sigma Score' : T[metricId].name.toLowerCase();
+        if (idx >= 0) note.textContent = `Saved to ${user.username}. You’re #${idx + 1} on today’s ${board} board.`;
+      } catch (e) {}
+    } else if (st === 'guest') {
+      const signup = el('button', { class: 'linkish', type: 'button', onclick: () => go('signup'), text: 'Sign up' });
+      const signin = el('button', { class: 'linkish', type: 'button', onclick: () => { afterSignIn = 'leaderboard'; go('signin'); }, text: 'sign in' });
+      note.append('Kept in this browser. ', signup, ' or ', signin, ' to put it on the leaderboard.');
+    } else if (st === 'failed') note.textContent = 'Couldn’t reach the leaderboard. It’s kept here and will be saved when you’re back online.';
+    else note.textContent = 'Kept in this browser. This copy isn’t connected to a leaderboard yet.';
+  }
+  function verdict(p, isSigma) {
+    const what = isSigma ? 'Overall' : 'That’s';
+    if (p >= 85) return `${what} well above typical. Excellent.`;
+    if (p >= 65) return `${what} above typical.`;
+    if (p >= 40) return `${what} close to typical.`;
+    if (p >= 20) return `${what} a little below typical. Another go usually helps.`;
+    return `${what} well below typical. Warm up and try again.`;
+  }
+
+  /* ================= Test runners: (stage, finish) => cleanup ================= */
+  const RUNNERS = {
+    reaction(stage, finish) {
+      const ROUNDS = 5, FALSE = 100;
+      let state = 'idle', times = [], timer = null, t0 = 0, dead = false;
+      const big = el('p', { class: 'panel-big', text: 'Click to begin' });
+      const sub = el('p', { class: 'panel-sub', text: 'The panel turns pink, then green after a random wait. Click the instant it turns green.' });
+      const lbl = el('span', { text: `Round 1 of ${ROUNDS}` }), tl = el('span', { class: 'num' });
+      const panel = el('div', { class: 'panel', role: 'button', tabindex: '0', 'aria-label': 'Reaction panel' },
+        el('div', { class: 'panel-top' }, lbl, tl),
+        el('div', { class: 'panel-main', 'aria-live': 'polite' }, big, sub),
+        el('div', { class: 'panel-foot' }, el('span', {}, 'Click, tap or press ', el('kbd', { text: 'Space' })), el('span', { text: 'Under 100 ms counts as a false start' })));
+      stage.append(panel);
+      const set = (st, b, s) => { state = st; panel.dataset.state = st; big.innerHTML = b; sub.textContent = s; lbl.textContent = `Round ${Math.min(times.length + 1, ROUNDS)} of ${ROUNDS}`; };
+      const pop = () => { big.classList.remove('pop'); void big.offsetWidth; big.classList.add('pop'); };
+      function arm() {
+        clearTimeout(timer); set('wait', 'Wait…', 'Hold still until it turns green.');
+        timer = setTimeout(() => {
+          if (dead) return;
+          set('go', 'Click!', 'Now.'); t0 = performance.now();
+          requestAnimationFrame(() => { if (state === 'go') t0 = performance.now(); });
+        }, 2000 + Math.random() * 3000);
+      }
+      function act(e) {
+        if (e) e.preventDefault();
+        if (state === 'idle' || state === 'result' || state === 'early') return arm();
+        if (state === 'wait') { clearTimeout(timer); set('early', 'Too soon', 'You clicked before green. Click to retry this round.'); return pop(); }
+        if (state === 'go') {
+          const ms = Math.round(performance.now() - t0);
+          if (ms < FALSE) { set('early', 'Too soon', `${ms} ms is faster than a real reaction. Click to retry.`); return pop(); }
+          times.push(ms); tl.textContent = times.join(' · ');
+          if (times.length >= ROUNDS) { state = 'done'; return finish(Math.round(times.reduce((a, b) => a + b, 0) / ROUNDS)); }
+          set('result', `${ms}<small>ms</small>`, `Click for round ${times.length + 1}.`); pop();
+        }
+      }
+      panel.addEventListener('pointerdown', e => { if (e.button === 0 || e.pointerType !== 'mouse') act(e); });
+      const onKey = e => { if ((e.code === 'Space' || e.key === 'Enter') && !e.repeat && !/^(INPUT|TEXTAREA|BUTTON)$/.test(e.target.tagName)) act(e); };
+      document.addEventListener('keydown', onKey);
+      panel.focus();
+      return () => { dead = true; clearTimeout(timer); document.removeEventListener('keydown', onKey); };
+    },
+
+    sequence(stage, finish) {
+      let level = 0, seq = [], pos = 0, accepting = false, dead = false;
+      const lvl = el('span', { text: 'Level 1' }), msg = el('span', { id: 'seqMsg', text: 'Watch…' });
+      const grid = el('div', { class: 'tiles locked', style: 'grid-template-columns:repeat(3,1fr)' });
+      const tiles = Array.from({ length: 9 }, (_, i) => el('button', { type: 'button', 'aria-label': `Tile ${i + 1}` }));
+      grid.append(...tiles);
+      stage.append(el('div', { class: 'tiles-wrap' }, el('div', { class: 'hud' }, lvl, msg), grid));
+      async function show() {
+        accepting = false; grid.classList.add('locked'); msg.textContent = 'Watch…';
+        await sleep(650);
+        for (const i of seq) { if (dead) return; tiles[i].classList.add('lit'); await sleep(450); tiles[i].classList.remove('lit'); await sleep(170); }
+        if (dead) return;
+        pos = 0; accepting = true; grid.classList.remove('locked'); msg.textContent = 'Your turn';
+      }
+      function next() { level++; seq.push(Math.floor(Math.random() * 9)); lvl.textContent = `Level ${level}`; show(); }
+      async function press(i) {
+        const b = tiles[i];
+        if (i !== seq[pos]) {
+          accepting = false; b.classList.add('bad'); tiles[seq[pos]].classList.add('ok'); msg.textContent = 'Wrong tile';
+          await sleep(900); if (!dead) finish(level - 1); return;
+        }
+        b.classList.add('lit'); setTimeout(() => b.classList.remove('lit'), 180);
+        pos++;
+        if (pos === seq.length) { accepting = false; grid.classList.add('locked'); msg.textContent = 'Correct'; await sleep(450); if (!dead) next(); }
+      }
+      grid.addEventListener('pointerdown', e => { const b = e.target.closest('button'); if (b && accepting) { e.preventDefault(); press(tiles.indexOf(b)); } });
+      grid.addEventListener('keydown', e => { const b = e.target.closest('button'); if (b && accepting && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); press(tiles.indexOf(b)); } });
+      next();
+      return () => { dead = true; };
+    },
+
+    number(stage, finish) {
+      let n = 2, target = '', dead = false, timer = null;
+      const wrap = el('div', { class: 'num-wrap' });
+      stage.append(wrap);
+      // The number is painted onto a canvas, so there is no text to select or copy.
+      function paint(canvas, text) {
+        const w = Math.max(200, wrap.clientWidth - 2 * parseFloat(getComputedStyle(wrap).paddingLeft || 0));
+        const size = Math.min(112, w / (text.length * 0.64 + 0.2));
+        const adv = size * 0.62, h = Math.ceil(size * 1.08), dpr = devicePixelRatio || 1;
+        canvas.width = Math.ceil(w * dpr); canvas.height = Math.ceil(h * dpr);
+        canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+        const c = canvas.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+        c.clearRect(0, 0, w, h);
+        c.fillStyle = getComputedStyle(canvas).color;
+        c.font = `600 ${size}px "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif`;
+        c.textBaseline = 'alphabetic'; c.textAlign = 'center';
+        [...text].forEach((ch, i) => c.fillText(ch, adv * (i + 0.5), size * 0.9));
+      }
+      function round() {
+        n++;
+        target = String(1 + Math.floor(Math.random() * 9)) + Array.from({ length: n - 1 }, () => Math.floor(Math.random() * 10)).join('');
+        const ms = 800 + 600 * n;
+        const bar = el('i');
+        const canvas = el('canvas', { class: 'num-canvas', role: 'img', 'aria-label': `The number, ${n} digits: ${target.split('').join(' ')}` });
+        wrap.replaceChildren(el('p', { class: 'hud', text: `${n} digits` }), canvas, el('div', { class: 'timebar', 'aria-hidden': 'true' }, bar));
+        paint(canvas, target);
+        bar.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: ms, easing: 'linear', fill: 'forwards' });
+        timer = setTimeout(ask, ms);
+      }
+      function ask() {
+        if (dead) return;
+        const input = el('input', { id: 'numIn', type: 'text', inputmode: 'numeric', autocomplete: 'off', autocorrect: 'off', spellcheck: 'false', pattern: '[0-9]*', maxlength: '40', 'aria-describedby': 'numNote' });
+        const note = el('p', { class: 'num-note', id: 'numNote', role: 'status' });
+        const refuse = e => { e.preventDefault(); note.textContent = 'Pasting is turned off. Type the number from memory.'; };
+        input.addEventListener('paste', refuse);
+        input.addEventListener('drop', refuse);
+        input.addEventListener('dragover', e => e.preventDefault());
+        input.addEventListener('beforeinput', e => { if (/^insertFrom(Paste|Drop|Yank|PasteAsQuotation)$|^insertReplacementText$/.test(e.inputType)) refuse(e); });
+        input.addEventListener('input', () => { const v = input.value.replace(/\D/g, ''); if (v !== input.value) input.value = v; });
+        const form = el('form', { class: 'num-form' }, el('label', { for: 'numIn', text: 'What was the number?' }), input, note,
+          el('div', { class: 'play-row' }, el('button', { class: 'btn', type: 'submit', text: 'Submit' })));
+        form.addEventListener('submit', e => { e.preventDefault(); check(input.value.replace(/\D/g, '')); });
+        wrap.replaceChildren(el('p', { class: 'hud', text: `${n} digits` }), form);
+        input.focus();
+      }
+      function check(ans) {
+        const ok = ans === target, yours = el('b');
+        [...ans].forEach((c, i) => yours.append(c === target[i] ? c : el('span', { class: 'miss', text: c })));
+        if (!ans) yours.textContent = '(nothing)';
+        const btn = el('button', { class: 'btn', type: 'button', text: ok ? 'Next number' : 'See result' });
+        btn.addEventListener('click', () => ok ? round() : finish(n - 1));
+        wrap.replaceChildren(el('p', { class: 'hud', text: ok ? 'Correct' : 'Not quite' }),
+          el('div', { class: 'compare' }, el('span', {}, 'Number: ', el('b', { text: target })), el('span', {}, 'You typed: ', yours)),
+          el('div', { class: 'play-row' }, btn));
+        btn.focus();
+      }
+      round();
+      return () => { dead = true; clearTimeout(timer); };
+    },
+
+    visual(stage, finish) {
+      let level = 1, lives = 3, misses = 0, found = 0, picks = new Set(), accepting = false, dead = false, tiles = [];
+      const lvl = el('span', { text: 'Level 1' }), lv = el('span', { text: 'Lives 3' });
+      const grid = el('div', { class: 'tiles locked' });
+      stage.append(el('div', { class: 'tiles-wrap' }, el('div', { class: 'hud' }, lvl, lv), grid));
+      async function setup() {
+        const size = Math.min(7, 3 + Math.floor((level - 1) / 2)), count = level + 2;
+        grid.style.gridTemplateColumns = `repeat(${size},1fr)`; grid.style.gap = size > 5 ? '6px' : '10px';
+        tiles = Array.from({ length: size * size }, (_, i) => el('button', { type: 'button', 'aria-label': `Tile ${i + 1}` }));
+        grid.replaceChildren(...tiles);
+        picks = new Set(); while (picks.size < count) picks.add(Math.floor(Math.random() * tiles.length));
+        misses = 0; found = 0; accepting = false; grid.classList.add('locked');
+        lvl.textContent = `Level ${level}`; lv.textContent = `Lives ${lives}`;
+        await sleep(500); if (dead) return;
+        picks.forEach(i => tiles[i].classList.add('lit'));
+        await sleep(1200); if (dead) return;
+        picks.forEach(i => tiles[i].classList.remove('lit'));
+        accepting = true; grid.classList.remove('locked');
+      }
+      async function press(b) {
+        const i = tiles.indexOf(b);
+        if (!accepting || b.classList.contains('ok') || b.classList.contains('bad')) return;
+        if (picks.has(i)) {
+          b.classList.add('ok'); found++;
+          if (found === picks.size) { accepting = false; await sleep(450); if (!dead) { level++; setup(); } }
+        } else {
+          b.classList.add('bad'); misses++;
+          if (misses >= 3) {
+            accepting = false; lives--; lv.textContent = `Lives ${lives}`;
+            picks.forEach(j => tiles[j].classList.add('lit'));
+            await sleep(900); if (dead) return;
+            if (lives <= 0) return finish(level - 1);
+            setup();
+          }
+        }
+      }
+      grid.addEventListener('pointerdown', e => { const b = e.target.closest('button'); if (b) { e.preventDefault(); press(b); } });
+      grid.addEventListener('keydown', e => { const b = e.target.closest('button'); if (b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); press(b); } });
+      setup();
+      return () => { dead = true; };
+    },
+  };
+
+
+  /* ================= Misc ================= */
+  $('clearLocal').addEventListener('click', () => { local = { best: {}, sigma: null }; store.set(LKEY, local); renderAll(); $('clearMsg').textContent = 'Cleared.'; });
+  setInterval(() => { if (!document.hidden && arena.hidden) { if (current === 'home' || current === 'leaderboard') renderPage(true); } }, 60000);
+
+  function animateIn(page) {
+    if (reduce || !page || !Element.prototype.animate || !('IntersectionObserver' in window)) return;
+    const items = [...page.querySelectorAll('[data-rise]')];
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(en => {
+        if (!en.isIntersecting) return;
+        io.unobserve(en.target);
+        const i = items.indexOf(en.target) % 6;
+        en.target.animate([{ opacity: 0, transform: 'translateY(24px)' }, { opacity: 1, transform: 'none' }],
+          { duration: 650, delay: i * 70, easing: 'cubic-bezier(.2,.7,.1,1)', fill: 'backwards' });
+      });
+    }, { rootMargin: '0px 0px -6% 0px' });
+    items.forEach(n => io.observe(n));
+  }
+
+  renderScale();
+  renderFour();
+  renderAll();
+  route();
+
+  if (sb) {
+    sb.auth.onAuthStateChange((event, session) => {
+      // defer: Supabase recommends not awaiting other calls inside this callback
+      setTimeout(async () => {
+        const changed = setUser(session ? session.user : null);
+        authKnown = true;
+        if (changed && user) await loadMine();
+        if (changed) boards.clear();
+        renderAll();
+        if (current === 'signin' || current === 'signup' || current === 'profile') { current = null; route(); }
+        if (user) flushPending();
+      }, 0);
+    });
+  }
+})();
+</script>
+</body>
+</html>
