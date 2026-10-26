@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Sigma Score</title>
-<meta name="description" content="Four quick tests of reaction and memory combined into one Sigma Score, with accounts and daily, weekly and all-time leaderboards.">
+<title>Reflex Score</title>
+<meta name="description" content="Four quick tests of reaction and memory combined into one Reflex Score, with accounts and daily, weekly and all-time leaderboards.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..600&display=swap" rel="stylesheet">
@@ -453,7 +453,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
 <header class="site-head">
   <div class="wrap">
     <nav class="nav" aria-label="Main">
-      <a class="wordmark" href="#home"><i aria-hidden="true">σ</i>Sigma Score</a>
+      <a class="wordmark" href="#home"><i aria-hidden="true">σ</i>Reflex Score</a>
       <ul class="nav-links">
         <li><a href="#tests" data-nav="tests">Tests</a></li>
         <li><a href="#leaderboard" data-nav="leaderboard">Leaderboard</a></li>
@@ -472,8 +472,8 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
       <div class="wrap">
         <div class="grid">
           <div class="hero-copy">
-            <h1 id="home-h" data-rise>How many sigmas are you?</h1>
-            <p class="lede" data-rise>Four quick tests of reaction and memory, about four minutes in all. They add up to one Sigma Score out of 100. Fifty is typical.</p>
+            <h1 id="home-h" data-rise>How quick are you, really?</h1>
+            <p class="lede" data-rise>Four quick tests of reaction and memory, about four minutes in all. They add up to one Reflex Score out of 100. Fifty is typical.</p>
             <div class="hero-actions" data-rise>
               <button class="btn" type="button" id="startFull">Start the full run</button>
               <a class="btn quiet" href="#signup" id="heroAcct">Create an account</a>
@@ -481,7 +481,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
           </div>
           <div class="card" data-ui data-rise aria-live="polite">
             <div class="card-top"><span id="cardWho">Example card</span><span>Best ever</span></div>
-            <div class="card-score"><b class="num" id="cardScore">63</b><span>Sigma Score<br><em id="cardSigma">+0.3σ</em> from typical</span></div>
+            <div class="card-score"><b class="num" id="cardScore">63</b><span>Reflex Score<br><em id="cardSigma">+0.3σ</em> from typical</span></div>
             <div class="bars" id="cardBars"></div>
             <p class="card-foot" id="cardFoot">Finish a full run to see your own card. The line marks 50, a typical result.</p>
           </div>
@@ -500,7 +500,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
     <section class="today on-ink" aria-labelledby="today-h">
       <div class="wrap">
         <h2 id="today-h" data-rise>Today's top three</h2>
-        <p class="cap" id="todayCap" data-rise>The best Sigma Scores from full runs since midnight UTC.</p>
+        <p class="cap" id="todayCap" data-rise>The best Reflex Scores from full runs since midnight UTC.</p>
         <ol class="podium" id="podium"></ol>
       </div>
     </section>
@@ -512,7 +512,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
       <div class="tests-head">
         <h1 class="page-title" id="tests-h" data-rise>Four tests, one score</h1>
         <div class="side" data-rise>
-          <p>The full run plays all four in a row and gives your Sigma Score. Play any test on its own to practise, or to chase that test's board.</p>
+          <p>The full run plays all four in a row and gives your Reflex Score. Play any test on its own to practise, or to chase that test's board.</p>
           <button class="btn light" type="button" id="startFull2">Start the full run</button>
         </div>
       </div>
@@ -538,7 +538,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
       <div class="board-panel" data-ui data-rise>
         <div class="board-table-wrap">
           <table class="lb" aria-label="Leaderboard" id="lbTable">
-            <thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col" class="val" id="valHead">Sigma Score</th><th scope="col" class="raw">Result</th></tr></thead>
+            <thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col" class="val" id="valHead">Reflex Score</th><th scope="col" class="raw">Result</th></tr></thead>
             <tbody id="lbBody"></tbody>
           </table>
           <div class="lb-empty" id="lbEmpty" hidden><p id="lbEmptyText"></p><button class="btn" type="button" id="lbPlay">Start the full run</button></div>
@@ -563,7 +563,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
     <div class="wrap page-pad">
       <h1 class="page-title" id="scoring-h" data-rise>How it adds up</h1>
       <div class="explain" data-rise>
-        <p>Each test turns your result into points from 1 to 99 on a smooth curve, where 50 points is a typical result. Your Sigma Score is the average of the four, from one full run.</p>
+        <p>Each test turns your result into points from 1 to 99 on a smooth curve, where 50 points is a typical result. Your Reflex Score is the average of the four, from one full run.</p>
         <p>The σ figure says how far that is from typical, in standard deviations: +1σ beats about 84 in 100 people, +2σ about 98. The typical values are our estimates from common results on tests like these, not a survey, so read it as a fair comparison between players here.</p>
       </div>
       <div class="scale-wrap" data-ui data-rise>
@@ -596,7 +596,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
     </div></section>
     <section class="qa" aria-labelledby="q5"><div class="wrap grid">
       <h2 id="q5" data-rise>I forgot my password</h2>
-      <div class="ans" data-rise><p>There's no email on file, so it can't be reset from here. Ask the person who runs Sigma Score to reset it for you, or sign up again with a new username.</p></div>
+      <div class="ans" data-rise><p>There's no email on file, so it can't be reset from here. Ask the person who runs Reflex Score to reset it for you, or sign up again with a new username.</p></div>
     </div></section>
     <section class="qa" aria-labelledby="q6"><div class="wrap grid">
       <h2 id="q6" data-rise>Why can't I paste in number memory?</h2>
@@ -683,7 +683,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
 <footer class="foot" aria-labelledby="foot-h">
   <div class="wrap">
     <h2 class="foot-big" id="foot-h"><button type="button" id="footRun">Beat your score</button></h2>
-    <p class="foot-note"><strong>Sigma Score</strong>: four tests of reaction and memory, timed in your browser with its high-resolution clock.</p>
+    <p class="foot-note"><strong>Reflex Score</strong>: four tests of reaction and memory, timed in your browser with its high-resolution clock.</p>
     <div class="foot-meta">
       <nav aria-label="Footer"><a href="#home">Home</a><a href="#tests">Tests</a><a href="#leaderboard">Leaderboard</a><a href="#scoring">Scoring</a><a href="#help">Help</a></nav>
       <span>Leaderboards reset at midnight UTC</span>
@@ -870,7 +870,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
     if (error) throw error;
   }
   function accountsBlocked() {
-    if (!sb) return 'This copy of Sigma Score isn’t connected to its database yet, so accounts are off. The site owner needs to add the Supabase keys (see README.md). You can still play as a guest.';
+    if (!sb) return 'This copy of Reflex Score isn’t connected to its database yet, so accounts are off. The site owner needs to add the Supabase keys (see README.md). You can still play as a guest.';
     return null;
   }
   function errText(e, fallback) {
@@ -981,7 +981,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
     $('cardScore').textContent = score != null ? score : '–';
     $('cardSigma').textContent = score != null ? sigmaText(score) : '?σ';
     $('cardFoot').textContent = haveAny
-      ? (b.sigma != null ? 'Your best points on each test. The line marks 50, a typical result.' : 'Finish a full run to get your Sigma Score. The line marks 50, a typical result.')
+      ? (b.sigma != null ? 'Your best points on each test. The line marks 50, a typical result.' : 'Finish a full run to get your Reflex Score. The line marks 50, a typical result.')
       : 'Finish a full run to see your own card. The line marks 50, a typical result.';
     barsInto($('cardBars'), vals);
   }
@@ -1063,7 +1063,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
   /* leaderboard */
   let period = 'day', metric = 'sigma';
   const metricCtl = $('metricCtl');
-  [['sigma', 'Sigma Score'], ...TESTS.map(t => [t.id, t.short])].forEach(([id, name]) =>
+  [['sigma', 'Reflex Score'], ...TESTS.map(t => [t.id, t.short])].forEach(([id, name]) =>
     metricCtl.append(el('button', { type: 'button', 'data-m': id, 'aria-pressed': String(id === metric), text: name })));
   metricCtl.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; metric = b.dataset.m; [...metricCtl.children].forEach(x => x.setAttribute('aria-pressed', String(x === b))); renderBoard(); });
   $('periodCtl').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; period = b.dataset.p; [...$('periodCtl').children].forEach(x => x.setAttribute('aria-pressed', String(x === b))); renderBoard(); });
@@ -1074,7 +1074,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
   let boardTok = 0;
   async function renderBoard(force) {
     const tok = ++boardTok, body = $('lbBody'), empty = $('lbEmpty'), table = $('lbTable');
-    $('valHead').textContent = metric === 'sigma' ? 'Sigma Score' : 'Points';
+    $('valHead').textContent = metric === 'sigma' ? 'Reflex Score' : 'Points';
     $('resetHead').textContent = period === 'all' ? 'All time' : 'Resets in';
     $('resetNote').textContent = period === 'all' ? 'Every player’s best result since they joined.' : `${untilNext(period)}, at midnight UTC${period === 'week' ? ' on Monday' : ''}.`;
     $('lbPlay').textContent = metric === 'sigma' ? 'Start the full run' : `Play ${T[metric].short.toLowerCase()}`;
@@ -1125,7 +1125,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
     const saved = mine.filter(r => !r.full_run || r.test === 'sigma').length;
     const stat = (v, label) => el('div', {}, v == null ? el('b', { class: 'none', text: 'None yet' }) : el('b', { class: 'num', text: v }), el('span', { text: label }));
     const paint = (dayIdx, allIdx) => $('pStats').replaceChildren(
-      stat(b.sigma ? String(b.sigma.p) : null, b.sigma ? `best Sigma Score · ${sigmaText(b.sigma.p)}` : 'best Sigma Score'),
+      stat(b.sigma ? String(b.sigma.p) : null, b.sigma ? `best Reflex Score · ${sigmaText(b.sigma.p)}` : 'best Reflex Score'),
       stat(dayIdx >= 0 ? `#${dayIdx + 1}` : null, 'today’s rank'),
       stat(allIdx >= 0 ? `#${allIdx + 1}` : null, 'all-time rank'),
       stat(String(saved), 'results saved'));
@@ -1137,7 +1137,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
       if (list.children.length >= 10) break;
       if (r.full_run && r.test !== 'sigma') continue;
       const when = new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      const what = r.test === 'sigma' ? `Full run · Sigma Score ${r.points}` : `${T[r.test] ? T[r.test].name : r.test} · ${T[r.test] ? T[r.test].fmt(r.raw) : r.raw}`;
+      const what = r.test === 'sigma' ? `Full run · Reflex Score ${r.points}` : `${T[r.test] ? T[r.test].name : r.test} · ${T[r.test] ? T[r.test].fmt(r.raw) : r.raw}`;
       list.append(el('li', {}, el('span', { text: what }), el('span', { text: when })));
     }
     $('pRecent').replaceChildren(list.children.length ? list : el('p', { text: 'Nothing saved yet. Your next result will show here.' }));
@@ -1223,10 +1223,10 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
     const bars = el('div', { class: 'bars' });
     barsInto(bars, Object.fromEntries(TESTS.map(t => [t.id, points(t.id, res[t.id])])));
     const note = el('p', { class: 'save-note', text: 'Saving…' });
-    const big = el('p', { class: 'big num' }, String(h), el('small', { text: `Sigma Score · ${sigmaText(h)}` }));
+    const big = el('p', { class: 'big num' }, String(h), el('small', { text: `Reflex Score · ${sigmaText(h)}` }));
     const again = el('button', { class: 'btn', type: 'button', onclick: () => startRun('full'), text: 'Run it again' });
     const board = el('button', { class: 'btn quiet', type: 'button', onclick: () => go('leaderboard'), text: 'See the leaderboard' });
-    screen(el('div', { class: 'result' }, el('h2', { id: 'arenaTitle', class: 'sr', text: 'Your Sigma Score' }), big,
+    screen(el('div', { class: 'result' }, el('h2', { id: 'arenaTitle', class: 'sr', text: 'Your Reflex Score' }), big,
       el('p', { class: 'what', text: verdict(h, true) }), bars, note, el('div', { class: 'play-row' }, again, board)));
     big.classList.add('pop'); again.focus();
     describeSave(note, await saveRun({ type: 'full', at: Date.now(), results: res }), 'sigma');
@@ -1238,7 +1238,7 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
       note.textContent = `Saved to ${user.username}.`;
       try {
         const rows = await fetchBoard(metricId, 'day', true), idx = rows.findIndex(r => r.id === user.id);
-        const board = metricId === 'sigma' ? 'Sigma Score' : T[metricId].name.toLowerCase();
+        const board = metricId === 'sigma' ? 'Reflex Score' : T[metricId].name.toLowerCase();
         if (idx >= 0) note.textContent = `Saved to ${user.username}. You’re #${idx + 1} on today’s ${board} board.`;
       } catch (e) {}
     } else if (st === 'guest') {
