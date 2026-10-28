@@ -380,6 +380,10 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
 .result .what { font-size: var(--step-lead); line-height: 1.3; max-width: 40ch; }
 .save-note { font-size: var(--step-body); max-width: 52ch; }
 .save-note.ok { color: var(--accent); font-weight: 500; }
+.save-note.prompt { background: var(--surface); border-left: 4px solid var(--accent); border-radius: 16px; padding: 18px 20px; display: grid; gap: 12px; max-width: 60ch; }
+.save-note.prompt strong { font-size: var(--step-lead); line-height: 1.2; }
+.save-note.prompt .play-row { margin: 0; }
+.signin-hint { font-size: var(--step-small); max-width: 52ch; }
 
 /* ───── Phone composition ───── */
 @media (max-width: 900px) {
@@ -1189,8 +1193,12 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
   function intro() {
     const t = cur();
     const b = el('button', { class: 'btn', type: 'button', onclick: play, text: 'Start' });
+    const hint = (saveState() === 'guest' && run.i === 0)
+      ? el('p', { class: 'signin-hint' }, 'You’re not signed in, so results won’t be saved. ',
+          el('button', { class: 'linkish', type: 'button', onclick: () => { afterSignIn = 'tests'; go('signin'); }, text: 'Sign in' }), ' first to keep them.')
+      : null;
     screen(el('div', { class: 'play-head' }, el('h2', { id: 'arenaTitle', text: run.mode === 'full' ? `${run.i + 1} of ${TESTS.length}: ${t.name}` : t.name }), el('p', { text: t.blurb })),
-      el('div', { class: 'play-row' }, b));
+      ...(hint ? [hint] : []), el('div', { class: 'play-row' }, b));
     b.focus();
   }
   function play() {
@@ -1242,9 +1250,12 @@ table.scale { width: 100%; border-collapse: collapse; font-size: var(--step-body
         if (idx >= 0) note.textContent = `Saved to ${user.username}. You’re #${idx + 1} on today’s ${board} board.`;
       } catch (e) {}
     } else if (st === 'guest') {
-      const signup = el('button', { class: 'linkish', type: 'button', onclick: () => go('signup'), text: 'Sign up' });
-      const signin = el('button', { class: 'linkish', type: 'button', onclick: () => { afterSignIn = 'leaderboard'; go('signin'); }, text: 'sign in' });
-      note.append('Kept in this browser. ', signup, ' or ', signin, ' to put it on the leaderboard.');
+      note.classList.add('prompt'); note.setAttribute('role', 'status');
+      const signin = el('button', { class: 'btn', type: 'button', onclick: () => { afterSignIn = 'leaderboard'; go('signin'); }, text: 'Sign in to save' });
+      const signup = el('button', { class: 'btn quiet', type: 'button', onclick: () => { afterSignIn = 'leaderboard'; go('signup'); }, text: 'Create an account' });
+      note.append(el('strong', { text: 'You must sign in to save your results.' }),
+        el('span', { text: 'This result is only kept in this browser for now. Sign in or create an account during this visit and it will be saved to your account and the leaderboard.' }),
+        el('div', { class: 'play-row' }, signin, signup));
     } else if (st === 'failed') note.textContent = 'Couldn’t reach the leaderboard. It’s kept here and will be saved when you’re back online.';
     else note.textContent = 'Kept in this browser. This copy isn’t connected to a leaderboard yet.';
   }
